@@ -5,7 +5,13 @@
 
 ## 装
 
-插件目录放到任意位置，然后在 profile 里登记（两选一）。
+### 0. 从 GitHub 拿下来
+
+```bash
+git clone https://github.com/luogrant/dsh-memory-list.git E:/dsh-plugins/dsh-memory-list
+```
+
+插件目录放到任意位置均可，然后在 profile 里登记（A / B 两选一）。
 
 ### A. 官方插件安装
 
