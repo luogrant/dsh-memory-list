@@ -1,5 +1,7 @@
 # dsh-memory-list · 记忆树（DSH 插件版）
 
+> **想先了解这个项目本身是什么？** 看 [docs/项目介绍.md](docs/项目介绍.md)：树的分层、五条轨、四个算法、数据格式、设计取舍都写在那儿。
+
 把原来的「记忆树 · 记忆空间」单文件服务（`node app.mjs` 起 8080）改造成 DeepSeek Harness 的原生插件：
 跑在 DSH 自己的 webServer 里，走 `/dsh-memory-list/` 前缀，侧栏有「识海」入口，数据落在独立目录。
 
