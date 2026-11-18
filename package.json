@@ -1,0 +1,56 @@
+{
+  "name": "dsh-memory-list",
+  "version": "0.1.0",
+  "description": "记忆识海 · DSH 插件版：五轨记忆 / 记忆树 / 人设 / 星图。整套界面挂到 DSH 网页下的 /dsh-memory-list，数据落 $DSH_HOME/memory-list（可用 SHIRAM_HOME 或 junction 指到任意盘）。",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "app.mjs",
+    "index.html",
+    "pages",
+    "data",
+    "llm.json",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "start": "node app.mjs",
+    "check": "node --check app.mjs && node --check index.js && node --check client.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "slots"
+      ],
+      "external": [
+        "react"
+      ]
+    }
+  },
+  "engines": {
+    "node": ">=22",
+    "dsh": ">=0.2.1-rc.2"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh-plugin",
+    "memory",
+    "memory-palace",
+    "star-map",
+    "五轨记忆"
+  ],
+  "license": "MIT",
+  "author": "YG"
+}

@@ -1,0 +1,1106 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>记忆星图 · 星轨</title>
+<style>
+  html,body{margin:0;height:100%;background:#02030a;overflow:hidden;
+    font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;color:#cfe2f5}
+  canvas{display:block;cursor:grab}
+  canvas:active{cursor:grabbing}
+  #hud{position:fixed;left:30px;top:26px;pointer-events:none}
+  #hud h1{margin:0;font-size:16px;font-weight:600;letter-spacing:.08em;color:#e6f0fa}
+  #hud p{margin:7px 0 0;font-size:11.5px;color:#61788e;letter-spacing:.05em;line-height:1.85}
+  #legend{position:fixed;left:30px;bottom:24px;font-size:11.5px;color:#5a7186;line-height:1.95;pointer-events:none}
+  #legend i{font-style:normal;margin-right:7px}
+  #card{position:fixed;right:30px;top:50%;transform:translateY(-50%);width:320px;
+    background:rgba(9,16,27,.86);border:1px solid rgba(96,146,196,.22);border-radius:12px;
+    padding:16px 18px;display:none;backdrop-filter:blur(9px);box-shadow:0 18px 50px rgba(0,0,0,.45)}
+  #card .p{font-size:10.5px;color:#5c86a8;letter-spacing:.04em;margin-bottom:9px;word-break:break-all}
+  #card .t{font-size:13px;line-height:1.78;color:#dbe9f8}
+  #card .m{margin-top:11px;font-size:10.5px;color:#4b6276;letter-spacing:.03em}
+  #tip{position:fixed;right:30px;bottom:24px;font-size:11px;color:#3b5063;pointer-events:none}
+  #tourBtn{position:fixed;right:30px;bottom:56px;z-index:6;padding:7px 15px;border-radius:18px;
+    border:1px solid rgba(96,146,196,.35);background:rgba(9,16,27,.78);color:#bfe1ff;
+    font-size:12.5px;letter-spacing:.06em;cursor:pointer;backdrop-filter:blur(8px);font-family:inherit}
+  #tourBtn:hover{background:rgba(22,38,60,.9);border-color:rgba(120,180,235,.55)}
+  #tourBtn.on{color:#0a1018;background:rgba(150,208,255,.9);border-color:rgba(150,208,255,.9)}
+  #t0panel{position:fixed;left:30px;top:110px;bottom:118px;width:272px;display:none;
+    background:rgba(9,16,27,.9);border:1px solid rgba(96,146,196,.24);border-radius:12px;
+    backdrop-filter:blur(9px);box-shadow:0 18px 50px rgba(0,0,0,.5);overflow:hidden}
+  #t0panel .hd{padding:13px 16px 10px;border-bottom:1px solid rgba(96,146,196,.16);
+    font-size:13px;color:#bfe1ff;letter-spacing:.05em}
+  #t0panel .hd span{float:right;font-size:10.5px;color:#54708a}
+  #t0panel .bd{position:absolute;top:44px;left:0;right:0;bottom:0;overflow-y:auto;padding:10px 14px 16px}
+  #t0panel .row{padding:8px 0;border-bottom:1px solid rgba(96,146,196,.09)}
+  #t0panel .row:last-child{border-bottom:none}
+  #t0panel .lv{display:inline-block;font-size:9.5px;padding:1px 5px;border-radius:3px;
+    margin-right:6px;letter-spacing:.06em;vertical-align:1px}
+  #t0panel .lv1{background:rgba(159,214,255,.16);color:#9fd6ff}
+  #t0panel .lv2{background:rgba(125,224,192,.16);color:#7de0c0}
+  #t0panel .lv3{background:rgba(169,184,255,.16);color:#a9b8ff}
+  #t0panel .tx{font-size:12px;line-height:1.7;color:#cfdff0}
+  #t0panel .meta{font-size:10px;color:#4b6276;margin-top:3px}
+  /* 右侧记忆树：面板不占画布，开时把画面中心左移，保持星团在可视区中间 */
+  #tree{position:fixed;right:0;top:0;bottom:0;width:300px;z-index:7;display:flex;flex-direction:column;
+    background:rgba(6,10,18,.82);border-left:1px solid rgba(96,146,196,.16);backdrop-filter:blur(10px);
+    transition:transform .2s ease;transform:translateX(300px)}
+  #tree.open{transform:none}
+  #treeTab{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:8;width:26px;height:96px;
+    background:rgba(9,16,27,.9);border:1px solid rgba(96,146,196,.22);border-right:0;border-radius:10px 0 0 10px;
+    color:#8fb6d8;font-size:11px;letter-spacing:.18em;writing-mode:vertical-rl;
+    display:flex;align-items:center;justify-content:center;cursor:pointer}
+  #tree .th{flex:none;padding:12px 14px;font-size:12.5px;color:#bfe1ff;letter-spacing:.05em;
+    border-bottom:1px solid rgba(96,146,196,.16);display:flex;justify-content:space-between;align-items:center}
+  #tree .th b{cursor:pointer;font-weight:400;color:#5c86a8;font-size:15px}
+  #tree .th .tab{cursor:pointer;margin-right:16px;color:#66809a}
+  #tree .th .tab.on{color:#bfe1ff}
+  #tree .tb{flex:1;overflow-y:auto;padding:8px 8px 24px;font-size:12px}
+  #tree .n{padding:5px 8px;border-radius:6px;cursor:pointer;color:#a9c0d6;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #tree .n:hover{background:rgba(96,146,196,.14);color:#dbe9f8}
+  #tree .n .c{float:right;color:#4b6276;font-size:10.5px;margin-left:6px}
+  #tree .n.l0{color:#9fd6ff}
+  #tree .n.l1{color:#cfdff0;font-weight:500}
+  #tree .n.m{color:#7f95a9;font-size:11px;line-height:1.5;white-space:normal}
+  #tree .n.m:hover{color:#dbe9f8;background:rgba(96,146,196,.18)}
+  #tree .n .lv{color:#5c86a8;font-size:10.5px;margin-right:3px}
+  #tree .n .p{color:#e8c98d;font-size:10.5px;margin-right:5px}
+  #tree .n .ops{display:inline;float:right;margin-left:8px;opacity:.35}
+  #tree .n:hover .ops{opacity:.85}
+  #tree .n .ops b{font-weight:400;font-size:10.5px;color:#7fa0bb;margin-left:7px;cursor:pointer}
+  #tree .n .ops b:hover{color:#dbe9f8}
+  #tree .te{flex:none;display:none;padding:10px 12px 14px;border-top:1px solid rgba(96,146,196,.16)}
+  #tree .te.on{display:block}
+  #tree .te .tl{font-size:11px;color:#5c86a8;margin-bottom:6px;line-height:1.5}
+  #tree .te input{width:100%;box-sizing:border-box;background:rgba(9,16,27,.9);border:1px solid rgba(96,146,196,.3);color:#dbe9f8;border-radius:6px;padding:5px 7px;font-size:12px;outline:none}
+  #tree .te .tb2{margin-top:7px;display:flex;gap:8px}
+  #tree .te .tb2 button{flex:1;background:rgba(96,146,196,.16);border:1px solid rgba(96,146,196,.3);color:#cfe2f5;border-radius:6px;padding:4px 0;font-size:11.5px;cursor:pointer}
+  #tree .te .tb2 button:hover{background:rgba(96,146,196,.28)}
+  #tree .tb::-webkit-scrollbar{width:8px}
+  #tree .tb::-webkit-scrollbar-thumb{background:rgba(127,127,127,.28);border-radius:4px}
+  body.tree-open #card{right:330px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+  <h1>记忆星图</h1>
+  <p>中心是我 · 本我 自我 超我 绕我运转 · 拖动转动视角</p>
+</div>
+<div id="legend">
+  <div><i style="color:#96d0ff">●</i>三我</div>
+  <div><i style="color:#9fd6ff">●</i>T1 因素</div>
+  <div><i style="color:#7de0c0">●</i>T2 长期</div>
+  <div><i style="color:#a9b8ff">●</i>T3 短期</div>
+</div>
+<div id="card"><div class="p"></div><div class="t"></div><div class="m"></div></div>
+<div id="t0panel"><div class="hd"></div><div class="bd"></div></div>
+<div id="treeTab">记忆树</div>
+<div id="tree"><div class="th"><span class="tab" id="treeTabStar">星图</span><span class="tab on" id="treeTabList">列表</span><b id="treeClose">×</b></div><div class="tb" id="treeBody"></div><div class="te" id="treeEdit"><div class="tl" id="treeEditLabel"></div><input id="treeEditInput" type="text"><div class="tb2"><button id="treeEditOk">保存</button><button id="treeEditCancel">取消</button></div></div></div>
+<button id="tourBtn" title="自动巡游：镜头依次飞到每个 T1 节点正面">巡游</button>
+<div id="tip">拖动＝转动 · 滚轮＝缩放 · 点节点看内容 · 悬停停住星轨</div>
+<script>
+const DATA = __DATA__;
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+const card = document.getElementById('card');
+const t0panel = document.getElementById('t0panel');
+let panelRoot = '';
+
+// 按 T0 主干分组（客户端从 DATA 算，免得构建顺序打架）
+const T0MEM = (function(){
+  const out = {};
+  for (const r of DATA.roots){
+    out[r.name] = DATA.mems
+      .filter(function(m){
+        const seg = String(m.path || '').split('/').filter(Boolean);
+        return (seg[0] || '') === r.name;
+      })
+      .map(function(m){
+        const seg = String(m.path || '').split('/').filter(Boolean);
+        return {
+          lv: seg.length >= 4 ? 3 : Math.max(1, seg.length - 1),
+          t1: seg[1] || '', t2: seg[2] || '',
+          text: m.text || '', t: m.t || '', exp: m.exp || '',
+        };
+      })
+      .sort(function(a, b){ return (a.lv - b.lv) || String(a.t1).localeCompare(String(b.t1)); });
+  }
+  return out;
+})();
+
+function escHTML(s){
+  return String(s).replace(/[&<>]/g, function(c){
+    return c === '&' ? '&amp;' : c === '<' ? '&lt;' : '&gt;';
+  });
+}
+
+// 点 T0 主干：把这支下挂的记忆按 T1/T2/T3 列出来
+function showT0Panel(name){
+  const list = T0MEM[name] || [];
+  t0panel.querySelector('.hd').innerHTML = escHTML(name) + '<span>' + list.length + ' 条</span>';
+  const bd = t0panel.querySelector('.bd');
+  if (!list.length){
+    bd.innerHTML = '<div class="row"><span class="tx" style="color:#4b6276">这一支还没有记忆</span></div>';
+  } else {
+    bd.innerHTML = list.map(function(m){
+      const lv = m.lv >= 3 ? 3 : (m.lv <= 1 ? 1 : m.lv);
+      const tag = '<span class="lv lv' + lv + '">T' + lv + '</span>';
+      const meta = [m.t1, m.t2].filter(Boolean).join(' / ')
+        + (m.t ? ' · ' + m.t : '')
+        + (m.exp ? ' · 到期 ' + m.exp : '');
+      return '<div class="row">' + tag + '<span class="tx">' + escHTML(m.text)
+        + '</span><div class="meta">' + escHTML(meta) + '</div></div>';
+    }).join('');
+  }
+  t0panel.style.display = 'block';
+  panelRoot = name;
+}
+
+// ---------------- 右侧记忆树 ----------------
+let treeOpen = false;
+const treeEl = document.getElementById('tree');
+const treeTab = document.getElementById('treeTab');
+const treeBody = document.getElementById('treeBody');
+
+function escAttr(s){
+  return String(s).replace(/[&<>"]/g, function(c){
+    return c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : '&quot;';
+  });
+}
+function segs(m){ return String(m.path || '').split('/').filter(Boolean); }
+
+// 记忆树：层级树菜单（T0→T1→T2→T3 缩进折叠），每节点右侧四个操作：＋节点 / ＋记忆 / 改名 / 删除
+function buildTree(){
+  const uidRoot = { name: '', key: '', kids: {}, mems: [] };
+
+  function ensure(parts){
+    let n = uidRoot;
+    parts.forEach(function(p, i){
+      n.kids[p] = n.kids[p] || { name: p, key: parts.slice(0, i + 1).join('/'), kids: {}, mems: [] };
+      n = n.kids[p];
+    });
+    return n;
+  }
+  DATA.roots.forEach(function(r){
+    ensure([r.name]);
+    (r.t1 || []).forEach(function(t){ ensure([r.name, t]); });
+  });
+  DATA.mems.forEach(function(m){
+    const parts = segs(m);
+    if (!parts.length) return;
+    ensure(parts).mems.push(m);
+  });
+
+  function countOf(n){
+    let c = n.mems.length;
+    Object.keys(n.kids).forEach(function(k){ c += countOf(n.kids[k]); });
+    return c;
+  }
+  // 结构层（T0/T1）给「＋节点 / 修改」；记忆层（T2/T3）是可消失记忆，只留「删除」；
+  // 「等待处理」不在这棵树里。口径与 dsh-memory-tree 面板一致（2026-11-07 作者定）
+  function ops(n, depth){
+    let s = '<span class="ops" data-key="' + escAttr(n.key) + '">';
+    if (depth <= 1) s += '<b data-op="addnode">＋节点</b><b data-op="rename">修改</b>';
+    s += '<b data-op="del">删除</b>';
+    return s + '</span>';
+  }
+  function render(n, depth){
+    let out = '';
+    Object.keys(n.kids).forEach(function(k){
+      const c = n.kids[k];
+      out += '<div class="n ' + (depth === 0 ? 'l0' : depth === 1 ? 'l1' : 'l2') + '"'
+        + ' data-toggle="' + escAttr(c.key) + '" data-name="' + escAttr(c.name) + '"'
+        + ' style="padding-left:' + (8 + depth * 14) + 'px">'
+        + '<span class="lv">T' + depth + '・</span>'
+        + escHTML(c.name) + '<span class="c">' + countOf(c) + '</span>' + ops(c, depth) + '</div>';
+      out += '<div class="kids" data-kids="' + escAttr(c.key) + '">';
+      c.mems.forEach(function(m){
+        out += '<div class="n m" style="padding-left:' + (14 + (depth + 1) * 14) + 'px"'
+          + ' data-path="' + escAttr(m.path || '') + '" data-text="' + escAttr(m.text || '') + '">'
+           + '<span class="lv">' + ((!m.exp || m.exp === '永久') ? '永久' : m.lv === 1 ? '核心' : m.lv === 2 ? '长期' : (m.lv === 4 ? '自主' : '短期')) + '</span>'
+          + '<span style="color:#5c86a8">' + escHTML(m.t || '') + '</span> '
+          + escHTML(String(m.text || '').slice(0, 44)) + '</div>';
+      });
+      out += render(c, depth + 1);
+      out += '</div>';
+    });
+    return out;
+  }
+
+  treeBody.innerHTML = render(uidRoot, 0) || '<div class="n m">还没有记忆</div>';
+}
+
+async function treeApi(p, body){
+  const r = await fetch('api/tree' + p, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body)
+  });
+  let j = {};
+  try { j = await r.json(); } catch (e) {}
+  if (!r.ok || j.ok === false) throw new Error(j.error || ('HTTP ' + r.status));
+  return j;
+}
+
+
+function setTree(open){
+  treeOpen = !!open;
+  treeEl.classList.toggle('open', treeOpen);
+  treeTab.style.display = treeOpen ? 'none' : 'flex';
+  document.body.classList.toggle('tree-open', treeOpen);
+  CX = (W - (treeOpen ? 300 : 0)) / 2;
+}
+
+treeTab.addEventListener('click', function(){ setTree(true); });
+document.getElementById('treeTabStar').addEventListener('click', function(){ setTree(false); });
+document.getElementById('treeTabList').addEventListener('click', function(){ setTree(true); });
+document.getElementById('treeClose').addEventListener('click', function(){ setTree(false); });
+let edit = null;
+function openEdit(op, key, name){
+  edit = { op: op, key: key };
+  const box = document.getElementById('treeEdit');
+  const L = document.getElementById('treeEditLabel');
+  const I = document.getElementById('treeEditInput');
+  box.classList.add('on');
+  if (op === 'addnode'){ L.textContent = '在「' + name + '」下加一个子节点'; I.value = ''; I.style.display = 'block'; I.focus(); }
+  else if (op === 'rename'){ L.textContent = '修改节点名：' + name; I.value = name; I.style.display = 'block'; I.focus(); }
+  else { L.textContent = '确认删除「' + name + '」？只有空节点删得掉。'; I.style.display = 'none'; }
+}
+function closeEdit(){
+  edit = null;
+  document.getElementById('treeEdit').classList.remove('on');
+}
+
+treeBody.addEventListener('click', function(e){
+  const opEl = e.target.closest('.ops b');
+  if (opEl){
+    openEdit(opEl.dataset.op, opEl.closest('.ops').dataset.key, opEl.closest('.n').dataset.name || '');
+    return;
+  }
+  const t = e.target.closest('.n');
+  if (!t) return;
+  if (t.dataset.toggle){
+    const box = treeBody.querySelector('[data-kids="' + t.dataset.toggle + '"]');
+    if (box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    return;
+  }
+  if (t.dataset.text !== undefined){
+    card.querySelector('.p').textContent = t.dataset.path || '';
+    card.querySelector('.t').textContent = t.dataset.text || '';
+    card.querySelector('.m').textContent = '来自记忆树';
+    card.style.display = 'block';
+  }
+});
+
+document.getElementById('treeEditCancel').addEventListener('click', closeEdit);
+document.getElementById('treeEditOk').addEventListener('click', async function(){
+  if (!edit) return;
+  const v = document.getElementById('treeEditInput').value.trim();
+  try{
+    if (edit.op === 'addnode'){ if (!v) return; await treeApi('/add-node', { parentKey: edit.key, name: v }); }
+    else if (edit.op === 'rename'){ if (!v) return; await treeApi('/rename', { key: edit.key, name: v }); }
+    else { await treeApi('/delete-node', { key: edit.key }); }
+    location.reload();
+  } catch (err){
+    document.getElementById('treeEditLabel').textContent = '失败：' + err.message;
+  }
+});
+buildTree();
+
+let W = 0, H = 0, CX = 0, CY = 0, U = 800, DPR = Math.min(devicePixelRatio || 1, 2);
+let zoom = 1;
+
+// 背景：星云静帧（视频做不了无缝循环，作者定了用 JPG）
+// 用 4K 原片抽帧保证清晰度；锚点 = 星云漩涡中心，渲染时把它对到画面正中
+const BG_SRC = 'bg/nebula-4k-t200.jpg';
+const BG_ANCHOR_X = 0.510;   // 漩涡中心在图片里的归一化横坐标（值越大 → 图越左 → 主星相对越靠右）
+const BG_ANCHOR_Y = 0.430;   // 漩涡中心在图片里的归一化纵坐标
+const BG_OVER = 1.18;        // 额外放大，保证偏移后四边不露空
+const BG_SHIFT_Y = 0.03;     // 背景整体下移（屏高比例）→ 主星相对背景向上 3%
+const BG_SHIFT_X = 0.003;    // 背景整体右移（屏宽比例）→ 主星相对背景向左 0.3%
+const bgi = new Image();
+bgi.src = BG_SRC;
+let yaw = 0.35, pitch = -0.32;
+let dragging = false, lastX = 0, lastY = 0, moved = 0;
+
+const COLOR = ['255,208,138','143,208,255','140,232,190','235,158,205','168,178,255','255,182,120'];
+const N = Math.max(DATA.roots.length, 1);
+
+function resize(){
+  W = innerWidth; H = innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR;
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  CX = (W - (treeOpen ? 300 : 0)) / 2; CY = H / 2;
+  U = Math.min(W, H);          // 场景单位：短边
+}
+addEventListener('resize', resize); resize();
+
+// ---------------- 三维投影 ----------------
+function project(x, y, z){
+  const cy = Math.cos(yaw), sy = Math.sin(yaw);
+  const x1 = x * cy + z * sy;
+  const z1 = -x * sy + z * cy;
+  const cp = Math.cos(pitch), sp = Math.sin(pitch);
+  const y2 = y * cp - z1 * sp;
+  const z2 = y * sp + z1 * cp;
+  const persp = 1 / (1 + z2 * 0.00050);      // z 越大越远
+  return {
+    x: CX + x1 * persp * zoom,
+    y: CY + y2 * persp * zoom,
+    z: z2,
+    s: persp,
+  };
+}
+
+// ---------------- T0 星轨（3D 椭圆） ----------------
+// 中心星的名字（画在星体下方）
+const CENTER_LABEL = '中心';
+// 主星半径，换算成 U 单位（画布短边归一化坐标）：sc 里 800 是基准，coreR = 100*sc
+const CORE_R_U = 100 / 800;
+// T0 星轨距离：固定按 10 颗平均分（现在只有 6 颗，也按 10 颗的间距走），外圈封顶 2.3 倍主星半径
+const T0_MAX = 10;
+const T0_R_MIN = 1.3, T0_R_MAX = 2.3;             // 倍主星半径：内圈 / 外圈
+const T0_STEP = (T0_R_MAX - T0_R_MIN) / (T0_MAX - 1);  // ≈0.1111
+const RINGS = DATA.roots.map((r, i) => {
+  const k = i / Math.max(1, N - 1);
+  const rnd = mulberry32(1000 + i * 77);
+  // 2026-11-15 作者：只剩 本我/自我/超我 三颗时，让它们站在同一条轨道上，均匀成三角
+  const SAME = N <= 3;
+  return {
+    idx: i,
+    name: r.name,
+    color: COLOR[i % COLOR.length],
+    // 第 n 颗 = 1.3 + 0.1111n，10 颗时最外 2.3 倍主星半径（T1 内圈 2.4，留 0.1 间隙）
+    R: (SAME ? 1.55 : (T0_R_MIN + T0_STEP * i)) * CORE_R_U,
+    shape: SAME ? 0.78 : 0.72 + 0.18 * Math.sin(i * 2.1),
+    rotZ: SAME ? 0.62 : 0.45 * i + 0.7 * Math.sin(i * 1.7),
+    tilt: SAME ? 0.52 : 0.35 + 0.85 * Math.cos(i * 1.13),
+    flow: 0.05 + 0.012 * i,
+    orbit: SAME ? 0.42 : (0.42 + 0.16 * i) * (i % 2 ? -1 : 1),   // 整条轨道绕中心自转，正负交替 → 交叉角一直在变
+    dots: Array.from({length: 14}, () => rnd()),
+  };
+});
+
+function ring3(rg, a){
+  const R = rg.R * U;
+  const px = Math.cos(a) * R;
+  const py = Math.sin(a) * R * rg.shape;
+  const rz = rg.rotZ;
+  const x1 = px * Math.cos(rz) - py * Math.sin(rz);
+  const y1 = px * Math.sin(rz) + py * Math.cos(rz);
+  const ct = Math.cos(rg.tilt), st = Math.sin(rg.tilt);
+  return { x: x1, y: y1 * ct, z: y1 * st };
+}
+
+// 轨道本身静止（不自转、粒子不流动）；动的是挂在轨道上的 T0 节点
+function ringPoint(rg, a){
+  return ring3(rg, a);
+}
+
+// ---------------- 节点：数据结构 ----------------
+const T1NODES = [], T2NODES = [], T3NODES = [];
+
+(function buildNodes(){
+  for (let ri = 0; ri < DATA.roots.length; ri++){
+    const r = DATA.roots[ri];
+    r.t1.forEach(name => {
+      T1NODES.push({
+        kind: 'T1', ri, name, level: 1,
+        grp: ri + '|' + name,
+        path: r.name + ' / ' + name,
+        text: name,
+      });
+    });
+
+    const t1map = new Map();
+    for (const m of DATA.mems){
+      const seg = String(m.path || '').split('/').filter(Boolean);
+      if ((seg[0] || '') !== r.name) continue;
+      const t1 = seg[1] || '';
+      const key = ri + '|' + t1;
+      if (!t1map.has(key)) t1map.set(key, new Map());
+      const t2map = t1map.get(key);
+      const t2 = seg[2] || '未分类';
+      if (!t2map.has(t2)) t2map.set(t2, []);
+      t2map.get(t2).push(m);
+    }
+
+    for (const [key, t2map] of t1map){
+      const t1node = T1NODES.find(n => n.grp === key);
+      if (!t1node) continue;
+      for (const t2name of t2map.keys()){
+        const mems = t2map.get(t2name);
+        const n2 = {
+          kind: 'T2', ri, name: t2name, level: 2, t1: t1node.name,
+          grp: key + '|' + t2name, grp1: key,
+          path: r.name + ' / ' + t1node.name + ' / ' + t2name,
+          text: t2name + ' · 下挂 ' + mems.length + ' 条',
+          n: mems.length,
+        };
+        T2NODES.push(n2);
+        mems.slice(0, Math.min(mems.length, 6)).forEach(m => {
+          T3NODES.push({
+            kind: 'T3', ri, level: 3, t1: t1node.name, t2: t2name,
+            grp: key + '|' + t2name,
+            path: m.path || '', text: m.text || '',
+            t: m.t || '', exp: m.exp || '',
+            hit: m.hit || 0,
+            parent: n2,
+          });
+        });
+      }
+    }
+  }
+})();
+
+// 使用次数向上汇总：T3 的 hit 累加到 T2，T2 的累加到 T1
+for (const n of T3NODES){ if (n.parent) n.parent.hit = (n.parent.hit || 0) + (n.hit || 0); }
+for (const n of T2NODES){
+  const t1 = T1NODES.find(x => x.grp === n.grp1);
+  if (t1) t1.hit = (t1.hit || 0) + (n.hit || 0);
+}
+
+const ALL = T1NODES.concat(T2NODES, T3NODES);
+const T1BYGRP = new Map(T1NODES.map(n => [n.grp, n]));
+
+// ---------------- 随机球壳分布（收拢 + 不围成圆） ----------------
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function scatter3D(){
+  // 外围 T1/T2/T3：星璇（双螺旋臂）静态分布 —— 参考星旋形态，臂内密、臂间疏
+  const rnd = mulberry32(20261107);
+  const order = ALL.slice().sort((a, b) => a.level - b.level);
+  const placed = [];
+  const ARMS = 2;
+  const R0 = 0.30, R1 = 0.68;   // 臂的半径范围（归一化）
+  const TURNS = 1.05;           // 每条臂绕多少圈
+  const total = order.length;
+  let sep = 0.038;
+  let pass = 0;
+
+  while (pass < 30){
+    let added = 0;
+    for (const n of order){
+      if (n.nx !== undefined) continue;
+      for (let t = 0; t < 240; t++){
+        // 78% 挂在螺旋臂上，22% 弥散在臂间当密度波
+        let x, y;
+        if (rnd() < 0.86){
+          const tt = Math.min(1, (placed.length + rnd() * 2) / total + (rnd() - 0.5) * 0.06);
+          const arm = Math.floor(rnd() * ARMS);
+          const r = R0 + (R1 - R0) * Math.pow(Math.max(0, tt), 0.72);
+          const theta = arm * Math.PI + tt * TURNS * Math.PI * 2 + (rnd() - 0.5) * 0.14;
+          const w = 0.018 + 0.048 * tt;            // 臂宽：内窄外宽
+          const dr = (rnd() + rnd() + rnd() - 1.5) * w;
+          x = Math.cos(theta) * (r + dr);
+          y = Math.sin(theta) * (r + dr);
+        } else {
+          const a = rnd() * Math.PI * 2;
+          const r = R0 + rnd() * (R1 - R0);
+          x = Math.cos(a) * r; y = Math.sin(a) * r;
+        }
+        let ok = Math.hypot(x, y) > 0.27;            // 中心禁区：留给 T0 星轨
+        if (ok) for (const p of placed){
+          if (Math.hypot(p.x - x, p.y - y) < sep){ ok = false; break; }
+        }
+        if (!ok) continue;
+        n.nx = x; n.ny = y;
+        n.nz = (rnd() * 2 - 1) * 0.075;
+        placed.push({ x, y });
+        added++;
+        break;
+      }
+    }
+    if (!added) break;
+    sep *= 0.90;
+    pass++;
+  }
+  // 兜底：沿螺旋臂补位
+  let k = 0;
+  for (const n of order){
+    if (n.nx !== undefined) continue;
+    const tt = (k % 40) / 40; k++;
+    const arm = k % ARMS;
+    const r = R0 + (R1 - R0) * tt;
+    const theta = arm * Math.PI + tt * TURNS * Math.PI * 2;
+    n.nx = Math.cos(theta) * r; n.ny = Math.sin(theta) * r; n.nz = 0;
+  }
+}
+scatter3D();
+
+const stars = Array.from({length: 260}, () => ({
+  x: Math.random(), y: Math.random(),
+  r: Math.random() * 1.0 + 0.18,
+  a: Math.random() * 0.32 + 0.05,
+  ph: Math.random() * 6.2832,
+}));
+
+// 星璇尘：纯装饰颗粒，沿同样两条螺旋臂铺开，让臂形看得见（不属于记忆节点）
+const spiralDust = (function(){
+  const rnd = mulberry32(77123);
+  const out = [];
+  const ARMS = 2, R0 = 0.235, R1 = 0.82, TURNS = 1.62;
+  for (let i = 0; i < 1900; i++){
+    const tt = Math.pow(rnd(), 0.80);
+    const arm = i % ARMS;
+    const r = R0 + (R1 - R0) * tt;
+    const theta = arm * Math.PI + tt * TURNS * Math.PI * 2 + (rnd() - 0.5) * 0.13;
+    const w = 0.020 + 0.062 * tt;
+    const rr = r + (rnd() + rnd() - 1) * w;
+    out.push({
+      x: Math.cos(theta) * rr,
+      y: Math.sin(theta) * rr,
+      s: 0.30 + rnd() * 0.62,
+      a: 0.16 + rnd() * 0.38,
+    });
+  }
+  return out;
+})();
+
+let spin = 0, lastNow = 0, hoverNode = null, autoYaw = true, selected = null, yawDir = -1;
+
+// ---------------- 自动巡游（上帝视角：镜头绕到节点正面停下看卡片） ----------------
+const TOUR = { on:false, list:[], i:-1, phase:'move', t0:0, dur:1.7, dwell:2.4,
+               fy:0, fp:0, fz:1, ty:0, tp:0, tz:1 };
+
+function tourTargets(){
+  // 只巡 T1（因素层）：按盘面角度排一圈，视觉上是绕星系转
+  const arr = T1NODES.filter(function (n){ return n.nx !== undefined; }).slice();
+  arr.sort(function (a, b){ return Math.atan2(a.ny, a.nx) - Math.atan2(b.ny, b.nx); });
+  return arr.slice(0, 24);
+}
+
+// 求「让这个节点正好落在画面中心」的 yaw / pitch（解析解，不靠试）
+function aimAt(n){
+  const X = n.nx * U, Y = n.nz * U, Z = n.ny * U;
+  const yawT = Math.atan2(-X, Z);
+  const r = Math.hypot(X, Z);
+  const pitchT = Math.atan2(Y, r);
+  return { yaw: yawT, pitch: pitchT };
+}
+
+function angLerp(a, b, k){
+  let d = (b - a) % (Math.PI * 2);
+  if (d > Math.PI) d -= Math.PI * 2;
+  if (d < -Math.PI) d += Math.PI * 2;
+  return a + d * k;
+}
+
+function showNodeCard(n){
+  if (!n){ card.style.display = 'none'; return; }
+  selected = n;
+  card.style.display = 'block';
+  card.querySelector('.p').textContent = (n.path || '') + ' · T' + n.level;
+  card.querySelector('.t').textContent = n.text || n.name || '';
+  card.querySelector('.m').textContent = n.level === 3
+    ? ('写入 ' + (n.t || '') + (n.exp ? ' · 到期 ' + n.exp : ''))
+    : ('T' + n.level + ' 节点');
+}
+
+function tourNext(){
+  TOUR.i++;
+  const n = TOUR.list[TOUR.i];
+  if (!n){ tourStop(true); return; }
+  const t = aimAt(n);
+  TOUR.fy = yaw; TOUR.fp = pitch; TOUR.fz = zoom;
+  TOUR.ty = t.yaw; TOUR.tp = t.pitch; TOUR.tz = 1.5;
+  TOUR.phase = 'move'; TOUR.t0 = performance.now();
+}
+
+function tourStep(now){
+  const n = TOUR.list[TOUR.i];
+  if (!n){ tourStop(true); return; }
+  const el = (now - TOUR.t0) / 1000;
+  if (TOUR.phase === 'move'){
+    const k = Math.min(1, el / TOUR.dur);
+    const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;   // easeInOutCubic
+    yaw = angLerp(TOUR.fy, TOUR.ty, e);
+    pitch = TOUR.fp + (TOUR.tp - TOUR.fp) * e;
+    zoom = TOUR.fz + (TOUR.tz - TOUR.fz) * e;
+    if (k >= 1){ TOUR.phase = 'dwell'; TOUR.t0 = now; showNodeCard(n); }
+  } else if (el >= TOUR.dwell){
+    tourNext();
+  }
+}
+
+function tourStart(){
+  const list = tourTargets();
+  if (!list.length) return;
+  TOUR.list = list; TOUR.i = -1; TOUR.on = true; autoYaw = false;
+  const btn = document.getElementById('tourBtn');
+  if (btn){ btn.textContent = '停止巡游'; btn.classList.add('on'); }
+  tourNext();
+}
+
+function tourStop(done){
+  TOUR.on = false; autoYaw = true;
+  card.style.display = 'none';
+  if (!done) selected = null;
+  const btn = document.getElementById('tourBtn');
+  if (btn){ btn.textContent = '巡游'; btn.classList.remove('on'); }
+  if (done){ yaw = 0.35; pitch = -0.32; zoom = 1; }   // 一圈走完回正
+}
+
+document.getElementById('tourBtn').addEventListener('click', function (){
+  if (TOUR.on) tourStop(false); else tourStart();
+});
+let t0Paused = false;            // 点中 T0 节点 = 暂停，方便查看
+let t0Hover = false;             // 鼠标悬在 T0 节点上 = 先停住
+const t0Hits = [];               // 每帧重建：T0 节点的屏幕坐标，供点击判定
+let mx = -9999, my = -9999;
+
+function draw(now){
+  const dt = lastNow ? Math.min(0.06, (now - lastNow) / 1000) : 0;
+  lastNow = now;
+
+  // 鼠标悬停在某个 T0 节点上 → 先停住，方便瞄准点它
+  t0Hover = false;
+  for (const h of t0Hits){
+    if (Math.hypot(mx - h.x, my - h.y) <= 26){ t0Hover = true; break; }
+  }
+
+  if (!hoverNode && !dragging && !t0Paused && !t0Hover) spin += dt;
+  if (TOUR.on && !dragging) tourStep(now);
+  else if (autoYaw && !dragging && !hoverNode) yaw += dt * 0.030 * yawDir;   // 悬停节点时停住，离开继续转
+
+  // 背景：星云静帧，把漩涡中心对到画面正中，上面压深色蒙版 + 暗角
+  if (bgi && bgi.complete && bgi.naturalWidth > 0){
+    const k = Math.max(W / bgi.naturalWidth, H / bgi.naturalHeight) * BG_OVER;
+    const dw = bgi.naturalWidth * k, dh = bgi.naturalHeight * k;
+    const ox = W / 2 - dw * BG_ANCHOR_X + W * BG_SHIFT_X;
+    const oy = H / 2 - dh * BG_ANCHOR_Y + H * BG_SHIFT_Y;
+    ctx.drawImage(bgi, ox, oy, dw, dh);
+    ctx.fillStyle = 'rgba(3,5,16,0.58)';
+    ctx.fillRect(0, 0, W, H);
+    const vg = ctx.createRadialGradient(CX, CY, Math.min(W, H) * 0.22, CX, CY, Math.max(W, H) * 0.70);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.62)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, W, H);
+  } else {
+    ctx.fillStyle = '#02030a';
+    ctx.fillRect(0, 0, W, H);
+  }
+  t0Hits.length = 0;               // 每帧重建 T0 命中表
+
+  for (const s of stars){
+    const tw = 0.55 + 0.45 * Math.sin(spin * 1.2 + s.ph);
+    ctx.beginPath(); ctx.arc(s.x * W, s.y * H, s.r, 0, 6.2832);
+    ctx.fillStyle = 'rgba(168,200,236,' + (s.a * tw).toFixed(3) + ')';
+    ctx.fill();
+  }
+
+  const sc = (U / 800) * zoom;
+
+  // 星璇尘：沿螺旋臂的装饰颗粒，先把「璇」的骨架铺出来
+  for (const d of spiralDust){
+    const pr = project(d.x * U, 0, d.y * U);
+    const rr = d.s * sc * pr.s;
+    ctx.fillStyle = 'rgba(198,226,255,' + (d.a * Math.min(1.2, pr.s)).toFixed(3) + ')';
+    ctx.fillRect(pr.x - rr, pr.y - rr, rr * 2, rr * 2);
+  }
+
+  // ---------- 收集所有 3D 对象 ----------
+  const items = [];
+
+  // 星轨已去掉（作者 2026-11-07：T0 只留节点）；轨道只用于算节点位置
+
+  // 节点：真实 3D 位置（盘状），随视角一起 yaw/pitch 旋转（8:03 那版）
+  const nodeProj = [];
+  const NP = U;
+  for (const n of ALL){
+    const pr = project(n.nx * NP, n.nz * NP, n.ny * NP);
+    n._sx = pr.x; n._sy = pr.y; n._sz = pr.z;
+    n._ss = Math.min(1.30, Math.max(0.55, pr.s));
+    nodeProj.push(n);
+  }
+  for (const n of nodeProj) items.push({ depth: n._sz, kind: 'node', n });
+  items.push({ depth: 0, kind: 'core' });
+
+  items.sort((a, b) => b.depth - a.depth);   // 远的先画
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  seenT1.clear();
+
+  for (const it of items){
+    if (it.kind === 'node'){
+      drawNode(it.n, sc);
+    } else {
+      drawCore(sc);
+    }
+  }
+
+  // T0 主干节点：没有轨道了，只画节点（沿原轨道位置跑）
+  for (const rg of RINGS) drawT0(rg, sc);
+
+  // 连线：默认全隐藏，只有点了某个节点才显示它这一条链
+  if (selected){
+    const lines = [];
+    if (selected.kind === 'T2'){
+      const p = T1BYGRP.get(selected.grp1);
+      if (p) lines.push([p, selected]);
+      for (const t of T3NODES) if (t.parent === selected) lines.push([selected, t]);
+    } else if (selected.kind === 'T1'){
+      for (const t of T2NODES) if (t.grp1 === selected.grp) lines.push([selected, t]);
+    } else if (selected.kind === 'T3'){
+      lines.push([selected.parent, selected]);
+      const p = T1BYGRP.get(selected.parent.grp1);
+      if (p) lines.push([p, selected.parent]);
+    }
+    for (const [a, b] of lines){
+      ctx.beginPath(); ctx.moveTo(a._sx, a._sy); ctx.lineTo(b._sx, b._sy);
+      ctx.strokeStyle = 'rgba(' + COLOR[selected.ri % COLOR.length] + ',0.42)';
+      ctx.lineWidth = 1.1; ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+
+  if (hoverNode){
+    ctx.beginPath(); ctx.arc(hoverNode._sx, hoverNode._sy, 13 * sc, 0, 6.2832);
+    ctx.strokeStyle = 'rgba(255,240,210,0.7)'; ctx.lineWidth = 1.2; ctx.stroke();
+  }
+
+  requestAnimationFrame(draw);
+}
+
+function drawRing(rg, sc){
+  // 轨道底色（很淡的一条基准线）
+  ctx.beginPath();
+  for (let i = 0; i <= 140; i++){
+    const p = ringPoint(rg, (i / 140) * Math.PI * 2);
+    const pr = project(p.x, p.y, p.z);
+    if (i === 0) ctx.moveTo(pr.x, pr.y); else ctx.lineTo(pr.x, pr.y);
+  }
+  ctx.strokeStyle = 'rgba(' + rg.color + ',0.05)';
+  ctx.lineWidth = 1.2 * sc; ctx.stroke();
+
+  // 粒子带：头亮尾淡（静止，不再沿轨道流动）
+  const SEG = 720;
+  for (let i = 0; i < SEG; i++){
+    let ph = (i / SEG);
+    ph = ph - Math.floor(ph);
+    const br = 0.10 + 0.90 * Math.pow(1 - ph, 2.2);
+    const p = ringPoint(rg, ph * Math.PI * 2);
+    const pr = project(p.x, p.y, p.z);
+    const near = Math.min(1.45, Math.max(0.42, pr.s));
+    ctx.beginPath();
+    ctx.arc(pr.x, pr.y, (1.25 + 3.00 * br) * 0.90 * sc * near, 0, 6.2832);
+    ctx.fillStyle = 'rgba(' + rg.color + ',' + (0.26 * br * near).toFixed(3) + ')';
+    ctx.fill();
+  }
+
+  // T0 主干节点：独立模块，沿轨道向前跑
+  drawT0(rg, sc);
+}
+
+// ---------------- T0 节点（独立模块）----------------
+// 规则：轨道静止；只有节点沿轨道圆周向前推进；名字跟着节点走。
+const T0_SPEED_BASE = 0.42;   // rad/秒，越外圈越快
+const T0_SPEED_STEP = 0.05;
+const T0_COLOR = '150,208,255';   // 和中心蓝巨星同一个色系
+function drawT0(rg, sc){
+  const speed = N <= 3 ? T0_SPEED_BASE : T0_SPEED_BASE + T0_SPEED_STEP * rg.idx;
+  const a0 = -Math.PI / 2 + rg.idx * (Math.PI * 2 / N);   // 起始角：顶部，六个均匀分开
+  const ang = a0 + spin * speed;
+  const p = ring3(rg, ang);
+  const pr = project(p.x, p.y, p.z);
+  const s = Math.min(1.45, Math.max(0.55, pr.s));
+  t0Hits.push({ x: pr.x, y: pr.y, name: rg.name });
+
+  // 暂停或悬停时给个圈，提示「已经定住了」
+  const hot = t0Paused || (t0Hover && Math.hypot(mx - pr.x, my - pr.y) <= 26);
+  if (hot){
+    ctx.beginPath(); ctx.arc(pr.x, pr.y, 15 * sc * s, 0, 6.2832);
+    ctx.strokeStyle = 'rgba(' + T0_COLOR + ',0.75)';
+    ctx.lineWidth = 1.2 * sc; ctx.stroke();
+  }
+
+  // 拖尾：沿轨道往回一长段，越远越淡（让「在跑」看得出来）
+  // 拖尾：细小颗粒状 —— 颗粒大小/间距/侧向散开都带随机，越远越淡
+  const TAIL_N = 720;
+  const TAIL_GAP = 0.00225;    // 颗粒再翻倍、间距减半，总长仍约 1.6 弧度
+  const hash = function(k, sd){ const v = Math.sin(k * 12.9898 + sd * 78.233) * 43758.5453; return v - Math.floor(v); };
+  for (let k = 1; k <= TAIL_N; k++){
+    const h1 = hash(k, rg.idx);
+    const h2 = hash(k + 100, rg.idx);
+    const h3 = hash(k + 200, rg.idx);
+    const tp = ring3(rg, ang - k * TAIL_GAP * (0.7 + h1 * 0.6));
+    const tpr = project(tp.x, tp.y, tp.z);
+    // 沿法向散开一点，让颗粒成带状而不是一条线
+    const vx = -(tpr.y - CY), vy = (tpr.x - CX);
+    const vl = Math.hypot(vx, vy) || 1;
+    const off = (h2 - 0.5) * 14.0 * sc * s;   // 带宽 ≈ 蓝巨星节点直径
+    const px = tpr.x + (vx / vl) * off;
+    const py = tpr.y + (vy / vl) * off;
+    const fade = Math.pow(1 - k / (TAIL_N + 1), 1.35);
+    const rad = (0.15 + h3 * 0.30) * sc * s;   // 单颗 0.15~0.45
+    // 小颗粒用 fillRect 比 arc 快很多（每帧 6×720 颗）
+    ctx.fillStyle = 'rgba(' + T0_COLOR + ',' + (fade * (0.20 + h1 * 0.20)).toFixed(3) + ')';
+    ctx.fillRect(px - rad, py - rad, rad * 2, rad * 2);
+  }
+
+  // 蓝巨星样式（中心那颗的缩小版）：外层蓝雾 + 白→浅蓝→深蓝星体 + 高光核
+  const R = 6.5 * sc * s;
+
+  const halo = ctx.createRadialGradient(pr.x, pr.y, 0, pr.x, pr.y, R * 3.2);
+  halo.addColorStop(0, 'rgba(140,205,255,0.34)');
+  halo.addColorStop(0.30, 'rgba(90,165,255,0.14)');
+  halo.addColorStop(1, 'rgba(50,100,200,0)');
+  ctx.beginPath(); ctx.arc(pr.x, pr.y, R * 3.2, 0, 6.2832);
+  ctx.fillStyle = halo; ctx.fill();
+
+  const body = ctx.createRadialGradient(pr.x, pr.y, 0, pr.x, pr.y, R);
+  body.addColorStop(0, 'rgba(255,255,255,1)');
+  body.addColorStop(0.20, 'rgba(226,243,255,0.98)');
+  body.addColorStop(0.44, 'rgba(150,208,255,0.86)');
+  body.addColorStop(0.70, 'rgba(72,140,235,0.50)');
+  body.addColorStop(1, 'rgba(40,90,200,0)');
+  ctx.beginPath(); ctx.arc(pr.x, pr.y, R, 0, 6.2832);
+  ctx.fillStyle = body; ctx.fill();
+
+  ctx.beginPath(); ctx.arc(pr.x, pr.y, R * 0.26, 0, 6.2832);
+  ctx.fillStyle = 'rgba(255,255,255,1)'; ctx.fill();
+
+  // 名字：挂在节点外侧，跟着节点走
+  const dx = pr.x - CX, dy = pr.y - CY;
+  const dl = Math.hypot(dx, dy) || 1;
+  const lx = pr.x + (dx / dl) * 28 * sc;
+  const ly = pr.y + (dy / dl) * 28 * sc;
+  ctx.font = '600 ' + (11 * sc) + 'px -apple-system,"Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(210,235,255,0.92)';
+  ctx.fillText(rg.name, lx, ly);
+}
+
+const seenT1 = new Set();
+function drawNode(n, sc){
+  const c = COLOR[n.ri % COLOR.length];
+  const depthFade = Math.max(0.25, Math.min(1, n._ss * 1.1));
+
+  // 亮度层级：越往下衍生越暗越小（T1 > T2 > T3）
+  // boost 预留给「真正被使用过」——hit 越多越亮，现在 hit 全 0 时不影响
+  const boost = 1 + Math.min(0.6, (n.hit || 0) * 0.12);
+
+  if (n.level === 3){
+    ctx.beginPath(); ctx.arc(n._sx, n._sy, 2.6 * sc * n._ss, 0, 6.2832);
+    ctx.fillStyle = 'rgba(' + c + ',' + (0.26 * depthFade * boost).toFixed(3) + ')';
+    ctx.fill();
+    return;
+  }
+
+  const base = (n.level === 1 ? 5.2 : n.level === 2 ? 3.9 : 2.6) * boost;
+  const glowR = (n.level === 1 ? 11 : 5.5) * boost * sc * n._ss;
+  const g = ctx.createRadialGradient(n._sx, n._sy, 0, n._sx, n._sy, glowR * 2.4);
+  g.addColorStop(0, 'rgba(255,255,250,' + Math.min(1, 0.95 * depthFade * boost).toFixed(3) + ')');
+  g.addColorStop(0.3, 'rgba(' + c + ',' + ((n.level === 2 ? 0.16 : 0.26) * depthFade * boost).toFixed(3) + ')');
+  g.addColorStop(1, 'rgba(' + c + ',0)');
+  ctx.beginPath(); ctx.arc(n._sx, n._sy, glowR * 2.4, 0, 6.2832);
+  ctx.fillStyle = g; ctx.fill();
+
+  ctx.beginPath(); ctx.arc(n._sx, n._sy, base * sc * n._ss, 0, 6.2832);
+  ctx.fillStyle = 'rgba(255,255,252,' + Math.min(1, (n.level === 1 ? 0.95 : 0.72) * depthFade).toFixed(3) + ')'; ctx.fill();
+
+  if (n.level === 1 && !seenT1.has(n.name)){
+    seenT1.add(n.name);
+    ctx.font = '500 ' + (9.5 * sc * n._ss).toFixed(1) + 'px -apple-system,"Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(226,238,250,' + (0.66 * depthFade).toFixed(3) + ')';
+    ctx.fillText(n.name, n._sx, n._sy - 12 * sc * n._ss);
+  } else if (n.level === 2 && n.name !== '未分类' && n._ss > 1.12){
+    ctx.font = '400 ' + (8.4 * sc * n._ss).toFixed(1) + 'px -apple-system,"Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(220,234,248,' + (0.36 * depthFade).toFixed(3) + ')';
+    ctx.fillText(n.name, n._sx, n._sy - 11 * sc * n._ss);
+  }
+}
+
+// 蓝色烟雾纹理：土星环样式 —— 若干同心细环带，环间留缝，雾团沿切向拉丝
+const smokeTex = (function(){
+  const S = 512;
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const g = c.getContext('2d');
+  const rnd = mulberry32(9137);
+  const BANDS = [[0.30, 0.355], [0.395, 0.44], [0.475, 0.545], [0.585, 0.63], [0.665, 0.70]];
+  for (let i = 0; i < 280; i++){
+    const band = BANDS[i % BANDS.length];
+    const rr = band[0] + rnd() * (band[1] - band[0]);
+    const a = rnd() * Math.PI * 2;
+    const x = S / 2 + Math.cos(a) * rr * S / 2;
+    const y = S / 2 + Math.sin(a) * rr * S / 2;
+    const rad = (0.06 + rnd() * 0.15) * S / 2;
+    const stretch = 2.6 + rnd() * 4.2;      // 沿切向拉长 → 环上的丝
+    const al = 0.020 + rnd() * 0.038;
+    g.save();
+    g.translate(x, y);
+    g.rotate(a + Math.PI / 2);
+    g.scale(stretch, 1);
+    const gr = g.createRadialGradient(0, 0, 0, 0, 0, rad);
+    gr.addColorStop(0, 'rgba(160,205,255,' + al.toFixed(4) + ')');
+    gr.addColorStop(0.40, 'rgba(100,160,245,' + (al * 0.55).toFixed(4) + ')');
+    gr.addColorStop(1, 'rgba(60,110,220,0)');
+    g.fillStyle = gr;
+    g.beginPath(); g.arc(0, 0, rad, 0, 6.2832); g.fill();
+    g.restore();
+  }
+  return c;
+})();
+
+function drawCore(sc){
+  const pulse = 0.95 + 0.05 * Math.sin(spin * 0.9);
+  const coreR = 100 * sc * pulse;
+
+  // 外围烟圈已撤（作者：太难看），中心只留蓝巨星本体 + 大气光晕
+
+  // 外层蓝雾：蓝巨星的大气
+  const halo = ctx.createRadialGradient(CX, CY, 0, CX, CY, coreR * 7.0);
+  halo.addColorStop(0, 'rgba(140,205,255,0.30)');
+  halo.addColorStop(0.18, 'rgba(90,165,255,0.14)');
+  halo.addColorStop(0.45, 'rgba(60,120,220,0.05)');
+  halo.addColorStop(1, 'rgba(40,80,180,0)');
+  ctx.beginPath(); ctx.arc(CX, CY, coreR * 7.0, 0, 6.2832);
+  ctx.fillStyle = halo; ctx.fill();
+
+  // 星体
+  const core = ctx.createRadialGradient(CX, CY, 0, CX, CY, coreR);
+  core.addColorStop(0, 'rgba(255,255,255,1)');
+  core.addColorStop(0.18, 'rgba(226,243,255,0.98)');
+  core.addColorStop(0.42, 'rgba(150,208,255,0.86)');
+  core.addColorStop(0.68, 'rgba(72,140,235,0.50)');
+  core.addColorStop(1, 'rgba(40,90,200,0)');
+  ctx.beginPath(); ctx.arc(CX, CY, coreR, 0, 6.2832);
+  ctx.fillStyle = core; ctx.fill();
+
+  // 高光核
+  ctx.beginPath(); ctx.arc(CX, CY, coreR * 0.22, 0, 6.2832);
+  ctx.fillStyle = 'rgba(255,255,255,1)'; ctx.fill();
+
+  // 放电丝已撤（作者：不好看），主星保持干净
+
+  ctx.font = '600 ' + (11 * sc) + 'px -apple-system,"Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(198,228,255,0.76)';
+  ctx.fillText(CENTER_LABEL, CX, CY + coreR * 2.6 + 8 * sc);
+  ctx.fillStyle = 'rgba(170,210,255,0.34)';
+  ctx.font = '400 ' + (9.5 * sc) + 'px -apple-system,"Microsoft YaHei",sans-serif';
+  ctx.fillText('记忆中心', CX, CY + coreR * 2.6 + 22 * sc);
+}
+
+requestAnimationFrame(draw);
+
+// 调试/自检口：读当前相机状态
+window.__cam = function(){ return { yaw: yaw, pitch: pitch, zoom: zoom, nodes: ALL.length, rings: RINGS.length, paused: t0Paused, hover: t0Hover, mx: mx, my: my }; };
+window.__t0 = function(){ return t0Hits.slice(); };
+window.__nodes = function(){
+  return ALL.map(n => ({ lv: n.level, name: n.name, sx: n._sx, sy: n._sy,
+    r: Math.hypot(n._sx - CX, n._sy - CY) }));
+};
+window.__reset = function(){ yaw = 0.35; pitch = -0.32; zoom = 1; };
+// 双击恢复默认视角
+cv.addEventListener('dblclick', () => { yaw = 0.35; pitch = -0.32; zoom = 1; });
+
+// ---------------- 交互：拖动旋转 / 滚轮缩放 / 点击 ----------------
+function pick(px, py){
+  let best = null, bd = 1e9;
+  const sc = (U / 800) * zoom;
+  for (const n of ALL){
+    const d = Math.hypot(n._sx - px, n._sy - py);
+    const lim = (n.level === 1 ? 20 : n.level === 2 ? 15 : 10) * sc;
+    if (d < lim && d < bd){ bd = d; best = n; }
+  }
+  return best;
+}
+
+cv.addEventListener('mousedown', e => {
+  if (TOUR.on) tourStop(false);
+  dragging = true; moved = 0;
+  lastX = e.clientX; lastY = e.clientY;
+  autoYaw = false;
+});
+addEventListener('mouseup', () => { dragging = false; autoYaw = true; });   // 松手恢复缓慢自转
+addEventListener('mousemove', e => {
+  const r = cv.getBoundingClientRect();
+  const px = e.clientX - r.left, py = e.clientY - r.top;
+  mx = px; my = py;                 // 记录鼠标位置，供 T0 悬停停住用
+
+  if (dragging){
+    const dx = e.clientX - lastX, dy = e.clientY - lastY;
+    moved += Math.abs(dx) + Math.abs(dy);
+    yaw += dx * 0.007;
+    if (Math.abs(dx) > 0.5) yawDir = dx > 0 ? 1 : -1;   // 记住拖的方向，松手后按这个方向继续转
+    pitch = Math.max(-1.25, Math.min(1.25, pitch + dy * 0.007));
+    lastX = e.clientX; lastY = e.clientY;
+    hoverNode = null;
+    return;
+  }
+  hoverNode = pick(px, py);
+  cv.style.cursor = hoverNode ? 'pointer' : 'grab';
+});
+cv.addEventListener('mouseleave', () => { hoverNode = null; });
+
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  zoom = Math.min(2.2, Math.max(0.5, zoom * (e.deltaY > 0 ? 0.93 : 1.07)));
+}, { passive: false });
+
+cv.addEventListener('click', e => {
+  if (moved > 6){ moved = 0; return; }     // 拖动不算点击
+  const r = cv.getBoundingClientRect();
+  const mx2 = e.clientX - r.left, my2 = e.clientY - r.top;
+
+  // 先判是不是点在 T0 节点上：点中 = 暂停 + 列出这一支下挂的记忆
+  for (const h of t0Hits){
+    if (Math.hypot(mx2 - h.x, my2 - h.y) <= 24){
+      card.style.display = 'none'; selected = null;
+      if (panelRoot === h.name){          // 再点同一个 = 收起
+        t0panel.style.display = 'none'; panelRoot = ''; t0Paused = false;
+      } else {
+        t0Paused = true;
+        showT0Panel(h.name);
+      }
+      return;
+    }
+  }
+
+  const n = pick(mx2, my2);
+  if (!n){ card.style.display = 'none'; selected = null; return; }
+  selected = n;
+  card.style.display = 'block';
+  card.querySelector('.p').textContent = (n.path || '') + ' · T' + n.level;
+  card.querySelector('.t').textContent = n.text || n.name || '';
+  card.querySelector('.m').textContent = n.level === 3
+    ? ('写入 ' + (n.t || '') + (n.exp ? ' · 到期 ' + n.exp : ''))
+    : ('T' + n.level + ' 节点');
+});
+</script>
+<script>
+// 2026-11-15 四项联动（作者）：列表 / 星图 / 星图侧栏 / 内置浏览器管理界面 同一份数据，
+// 任一处写入后 rev 变，这里 4 秒内整页重载，星图与右侧记忆树一起跟上。
+(function(){
+  var last = '', first = true;
+  function tick(){
+    fetch('api/rev', { credentials: 'same-origin' })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        if (!j || !j.ok) return;
+        if (first) { last = j.rev; first = false; return; }
+        if (j.rev !== last) { last = j.rev; location.reload(); }
+      })
+      .catch(function(){});
+  }
+  tick();
+  setInterval(tick, 4000);
+})();
+</script>
+</body>
+</html>

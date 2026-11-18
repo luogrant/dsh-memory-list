@@ -1,0 +1,672 @@
+{
+  "version": 1,
+  "built_at": "2026-11-15T07:06:14.476Z",
+  "source": {
+    "tracks": "C:\\Users\\Vampire\\.dsh\\memories",
+    "store": "X:\\Deepseek AI\\记忆系统\\store",
+    "tree": "X:\\Deepseek AI\\记忆系统\\tree.json",
+    "personas": "X:\\Deepseek AI\\记忆系统\\人设\\personas.json"
+  },
+  "tree": {
+    "version": 1,
+    "built_at": "2026-11-15T07:06:14.475Z",
+    "source": "记忆系统-T0填表模板.docx（老大手填）",
+    "rules": {
+      "levels": {
+        "0": {
+          "label": "T0 记忆构成",
+          "perm": "只读",
+          "limit": -1,
+          "life": "永久"
+        },
+        "1": {
+          "label": "T1 因素链条",
+          "perm": "只读（审核后写入）",
+          "limit": -1,
+          "life": "永久"
+        },
+        "2": {
+          "label": "T2 衍生链条",
+          "perm": "读写",
+          "limit": -1,
+          "life": "永久"
+        },
+        "3": {
+          "label": "T3 衍生链条",
+          "perm": "读写",
+          "limit": -1,
+          "life": "60 天"
+        },
+        "4": {
+          "label": "T4 因果链条",
+          "perm": "读写",
+          "limit": -1,
+          "life": "45 天"
+        },
+        "5": {
+          "label": "Q5 短期记忆",
+          "perm": "读写",
+          "limit": -1,
+          "life": "30 天"
+        }
+      },
+      "chains": {
+        "T0->T1": "因素链条：这个维度为什么归这个构成",
+        "T1->T2": "衍生链条：这个节点从哪个因素衍生",
+        "T2->T3": "衍生链条：细分文件夹",
+        "T3->T4": "因果链条：这一步的因与果",
+        "T4->Q5": "短期：由 M 瞬时记忆分类触发"
+      },
+      "naming": "槽位名是抽象维度名；同一父节点下不得重名；唯一键是完整路径（parent/name）",
+      "expand": "某分支满额时新建同级节点扩位（例：经历→经历二），只扩不删",
+      "delete": "唯一触发是时限：T3 60 天、T4 45 天、Q5 30 天，到期归档",
+      "promote": {
+        "T3->T2": "鱼宝自主判定，不需审核",
+        "T2->T1": "鱼宝提交，老大审核（复用 memory 待确认队列）",
+        "archive->T1": "从归档里摘出→重新分类→审核→进 T1"
+      },
+      "limitNote": "所有层级不设条数上限（limit=-1 即无限）"
+    },
+    "tree": [
+      {
+        "id": "L0-012",
+        "name": "执行规则",
+        "level": 0,
+        "level_label": "T0 记忆构成",
+        "path": "执行规则",
+        "perm": "只读",
+        "limit": -1,
+        "life": "永久",
+        "children": []
+      },
+      {
+        "id": "L0-009",
+        "name": "S 记忆汲取",
+        "level": 0,
+        "level_label": "T0 记忆构成",
+        "path": "S 记忆汲取",
+        "perm": "只读",
+        "limit": -1,
+        "life": "5 天",
+        "children": []
+      },
+      {
+        "id": "L0-010",
+        "name": "M 瞬时记忆",
+        "level": 0,
+        "level_label": "T0 记忆构成",
+        "path": "M 瞬时记忆",
+        "perm": "只读",
+        "limit": -1,
+        "life": "10 天",
+        "children": []
+      },
+      {
+        "id": "L0-011",
+        "name": "W 垃圾记忆",
+        "level": 0,
+        "level_label": "T0 记忆构成",
+        "path": "W 垃圾记忆",
+        "perm": "只读",
+        "limit": -1,
+        "life": "30 天",
+        "children": []
+      },
+      {
+        "id": "L0-008",
+        "name": "主体 - 意识本体",
+        "level": 0,
+        "level_label": "主干",
+        "path": "主体 - 意识本体",
+        "perm": "读写",
+        "limit": -1,
+        "life": "永久",
+        "children": [
+          {
+            "id": "L1-054",
+            "name": "人设人格",
+            "path": "主体 - 意识本体/人设人格",
+            "level": 0,
+            "level_label": "T0",
+            "perm": "只读（审核后写入）",
+            "limit": -1,
+            "life": "永久",
+            "children": [
+              {
+                "id": "L2-016",
+                "name": "人设",
+                "path": "主体 - 意识本体/人设人格/人设",
+                "level": 1,
+                "level_label": "T1",
+                "perm": "读写",
+                "limit": -1,
+                "life": "永久",
+                "children": [
+                  {
+                    "id": "L3-059",
+                    "name": "测试过程",
+                    "path": "主体 - 意识本体/人设人格/人设/测试过程",
+                    "level": 2,
+                    "level_label": "T2",
+                    "perm": "读写",
+                    "limit": -1,
+                    "life": "永久",
+                    "children": [
+                      {
+                        "id": "L4-001",
+                        "name": "判定因果",
+                        "path": "主体 - 意识本体/人设人格/人设/测试过程/判定因果",
+                        "level": 4,
+                        "level_label": "T4",
+                        "perm": "读写",
+                        "limit": -1,
+                        "life": "45 天",
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "id": "L3-060",
+                    "name": "测试依据",
+                    "path": "主体 - 意识本体/人设人格/人设/测试依据",
+                    "level": 3,
+                    "level_label": "T3",
+                    "perm": "读写",
+                    "limit": -1,
+                    "life": "60 天",
+                    "children": [
+                      {
+                        "id": "L4-002",
+                        "name": "答题逻辑",
+                        "path": "主体 - 意识本体/人设人格/人设/测试依据/答题逻辑",
+                        "level": 4,
+                        "level_label": "T4",
+                        "perm": "读写",
+                        "limit": -1,
+                        "life": "45 天",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "noChain": true
+          },
+          {
+            "id": "L1-055",
+            "name": "重要经历",
+            "path": "主体 - 意识本体/重要经历",
+            "level": 1,
+            "level_label": "T1 因素链条",
+            "perm": "只读（审核后写入）",
+            "limit": -1,
+            "life": "永久",
+            "children": [
+              {
+                "id": "L2-008",
+                "name": "经历清单",
+                "path": "主体 - 意识本体/重要经历/经历清单",
+                "level": 2,
+                "level_label": "T2",
+                "perm": "读写",
+                "limit": -1,
+                "life": "永久",
+                "children": [
+                  {
+                    "id": "L3-051",
+                    "name": "经历因果",
+                    "path": "主体 - 意识本体/重要经历/经历清单/经历因果",
+                    "level": 4,
+                    "level_label": "T4",
+                    "perm": "读写",
+                    "limit": -1,
+                    "life": "45 天",
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "L2-009",
+                "name": "经历影响",
+                "path": "主体 - 意识本体/重要经历/经历影响",
+                "level": 3,
+                "level_label": "T3",
+                "perm": "读写",
+                "limit": -1,
+                "life": "60 天",
+                "children": [
+                  {
+                    "id": "L3-052",
+                    "name": "影响因果",
+                    "path": "主体 - 意识本体/重要经历/经历影响/影响因果",
+                    "level": 4,
+                    "level_label": "T4",
+                    "perm": "读写",
+                    "limit": -1,
+                    "life": "45 天",
+                    "children": []
+                  }
+                ]
+              }
+            ],
+            "noChain": true
+          },
+          {
+            "id": "L1-056",
+            "name": "能力优缺",
+            "path": "主体 - 意识本体/能力优缺",
+            "level": 1,
+            "level_label": "T1 因素链条",
+            "perm": "只读（审核后写入）",
+            "limit": -1,
+            "life": "永久",
+            "children": [
+              {
+                "id": "L2-012",
+                "name": "能力清单",
+                "path": "主体 - 意识本体/能力优缺/能力清单",
+                "level": 2,
+                "level_label": "T2",
+                "perm": "读写",
+                "limit": -1,
+                "life": "永久",
+                "children": [
+                  {
+                    "id": "L3-055",
+                    "name": "能力成因",
+                    "path": "主体 - 意识本体/能力优缺/能力清单/能力成因",
+                    "level": 4,
+                    "level_label": "T4",
+                    "perm": "读写",
+                    "limit": -1,
+                    "life": "45 天",
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "L2-013",
+                "name": "优缺分析",
+                "path": "主体 - 意识本体/能力优缺/优缺分析",
+                "level": 3,
+                "level_label": "T3",
+                "perm": "读写",
+                "limit": -1,
+                "life": "60 天",
+                "children": [
+                  {
+                    "id": "L3-056",
+                    "name": "优缺成因",
+                    "path": "主体 - 意识本体/能力优缺/优缺分析/优缺成因",
+                    "level": 4,
+                    "level_label": "T4",
+                    "perm": "读写",
+                    "limit": -1,
+                    "life": "45 天",
+                    "children": []
+                  }
+                ]
+              }
+            ],
+            "noChain": true
+          },
+          {
+            "id": "L1-057",
+            "name": "喜厌嗜好",
+            "path": "主体 - 意识本体/喜厌嗜好",
+            "level": 1,
+            "level_label": "T1 因素链条",
+            "perm": "只读（审核后写入）",
+            "limit": -1,
+            "life": "永久",
+            "children": [
+              {
+                "id": "L2-014",
+                "name": "喜好清单",
+                "path": "主体 - 意识本体/喜厌嗜好/喜好清单",
+                "level": 2,
+                "level_label": "T2",
+                "perm": "读写",
+                "limit": -1,
+                "life": "永久",
+                "children": [
+                  {
+                    "id": "L3-057",
+                    "name": "喜好成因",
+                    "path": "主体 - 意识本体/喜厌嗜好/喜好清单/喜好成因",
+                    "level": 4,
+                    "level_label": "T4",
+                    "perm": "读写",
+                    "limit": -1,
+                    "life": "45 天",
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "L2-015",
+                "name": "厌恶清单",
+                "path": "主体 - 意识本体/喜厌嗜好/厌恶清单",
+                "level": 3,
+                "level_label": "T3",
+                "perm": "读写",
+                "limit": -1,
+                "life": "60 天",
+                "children": [
+                  {
+                    "id": "L3-058",
+                    "name": "厌恶成因",
+                    "path": "主体 - 意识本体/喜厌嗜好/厌恶清单/厌恶成因",
+                    "level": 4,
+                    "level_label": "T4",
+                    "perm": "读写",
+                    "limit": -1,
+                    "life": "45 天",
+                    "children": []
+                  }
+                ]
+              }
+            ],
+            "noChain": true
+          },
+          {
+            "id": "L1-036",
+            "name": "本我",
+            "level": 1,
+            "level_label": "分区",
+            "path": "主体 - 意识本体/本我",
+            "perm": "只读（审核后写入）",
+            "limit": -1,
+            "life": "永久",
+            "children": [
+              {
+                "id": "L0-002",
+                "name": "用户资料",
+                "level": 0,
+                "level_label": "T0 记忆构成",
+                "path": "主体 - 意识本体/本我/用户资料",
+                "perm": "只读",
+                "limit": -1,
+                "life": "永久",
+                "children": [
+                  {
+                    "id": "L1-039",
+                    "name": "人设人格",
+                    "level": 1,
+                    "level_label": "T1 因素链条",
+                    "path": "主体 - 意识本体/本我/用户资料/人设人格",
+                    "perm": "只读（审核后写入）",
+                    "limit": -1,
+                    "life": "永久",
+                    "children": []
+                  },
+                  {
+                    "id": "L1-007",
+                    "name": "重要经历",
+                    "level": 1,
+                    "level_label": "T1 因素链条",
+                    "path": "主体 - 意识本体/本我/用户资料/重要经历",
+                    "perm": "只读（审核后写入）",
+                    "limit": -1,
+                    "life": "永久",
+                    "children": []
+                  },
+                  {
+                    "id": "L1-040",
+                    "name": "能力优缺",
+                    "level": 1,
+                    "level_label": "T1 因素链条",
+                    "path": "主体 - 意识本体/本我/用户资料/能力优缺",
+                    "perm": "只读（审核后写入）",
+                    "limit": -1,
+                    "life": "永久",
+                    "children": []
+                  },
+                  {
+                    "id": "L1-010",
+                    "name": "喜厌嗜好",
+                    "level": 1,
+                    "level_label": "T1 因素链条",
+                    "path": "主体 - 意识本体/本我/用户资料/喜厌嗜好",
+                    "perm": "只读（审核后写入）",
+                    "limit": -1,
+                    "life": "永久",
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "L0-004",
+                "name": "情感情绪",
+                "level": 0,
+                "level_label": "T0 记忆构成",
+                "path": "主体 - 意识本体/本我/情感情绪",
+                "perm": "只读",
+                "limit": -1,
+                "life": "永久",
+                "children": [
+                  {
+                    "id": "L1-041",
+                    "name": "感知情绪",
+                    "level": 1,
+                    "level_label": "T1 因素链条",
+                    "path": "主体 - 意识本体/本我/情感情绪/感知情绪",
+                    "perm": "只读（审核后写入）",
+                    "limit": -1,
+                    "life": "永久",
+                    "children": []
+                  },
+                  {
+                    "id": "L1-042",
+                    "name": "人情事故",
+                    "level": 1,
+                    "level_label": "T1 因素链条",
+                    "path": "主体 - 意识本体/本我/情感情绪/人情事故",
+                    "perm": "只读（审核后写入）",
+                    "limit": -1,
+                    "life": "永久",
+                    "children": []
+                  },
+                  {
+                    "id": "L1-043",
+                    "name": "情感经历",
+                    "level": 1,
+                    "level_label": "T1 因素链条",
+                    "path": "主体 - 意识本体/本我/情感情绪/情感经历",
+                    "perm": "只读（审核后写入）",
+                    "limit": -1,
+                    "life": "永久",
+                    "children": []
+                  }
+                ]
+              }
+            ],
+            "noChain": true
+          },
+          {
+            "id": "L1-037",
+            "name": "自我",
+            "level": 1,
+            "level_label": "分区",
+            "path": "主体 - 意识本体/自我",
+            "perm": "只读（审核后写入）",
+            "limit": -1,
+            "life": "永久",
+            "children": [
+              {
+                "id": "L0-005",
+                "name": "知识认知",
+                "level": 0,
+                "level_label": "T0 记忆构成",
+                "path": "主体 - 意识本体/自我/知识认知",
+                "perm": "只读",
+                "limit": -1,
+                "life": "永久",
+                "children": [
+                  {
+                    "id": "L1-044",
+                    "name": "数学哲学",
+                    "level": 1,
+                    "level_label": "T1 因素链条",
+                    "path": "主体 - 意识本体/自我/知识认知/数学哲学",
+                    "perm": "只读（审核后写入）",
+                    "limit": -1,
+                    "life": "永久",
+                    "children": []
+                  },
+                  {
+                    "id": "L1-045",
+                    "name": "逻辑思维",
+                    "level": 1,
+                    "level_label": "T1 因素链条",
+                    "path": "主体 - 意识本体/自我/知识认知/逻辑思维",
+                    "perm": "只读（审核后写入）",
+                    "limit": -1,
+                    "life": "永久",
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "L0-006",
+                "name": "计划项目",
+                "level": 0,
+                "level_label": "T0 记忆构成",
+                "path": "主体 - 意识本体/自我/计划项目",
+                "perm": "只读",
+                "limit": -1,
+                "life": "永久",
+                "children": []
+              }
+            ],
+            "noChain": true
+          },
+          {
+            "id": "L1-038",
+            "name": "超我",
+            "level": 1,
+            "level_label": "分区",
+            "path": "主体 - 意识本体/超我",
+            "perm": "只读（审核后写入）",
+            "limit": -1,
+            "life": "永久",
+            "children": [
+              {
+                "id": "L0-003",
+                "name": "规则权限",
+                "level": 0,
+                "level_label": "T0 记忆构成",
+                "path": "主体 - 意识本体/超我/规则权限",
+                "perm": "只读",
+                "limit": -1,
+                "life": "永久",
+                "children": [
+                  {
+                    "id": "L1-013",
+                    "name": "规则",
+                    "level": 1,
+                    "level_label": "T1 因素链条",
+                    "path": "主体 - 意识本体/超我/规则权限/规则",
+                    "perm": "只读（审核后写入）",
+                    "limit": -1,
+                    "life": "永久",
+                    "children": []
+                  },
+                  {
+                    "id": "L1-012",
+                    "name": "权限",
+                    "level": 1,
+                    "level_label": "T1 因素链条",
+                    "path": "主体 - 意识本体/超我/规则权限/权限",
+                    "perm": "只读（审核后写入）",
+                    "limit": -1,
+                    "life": "永久",
+                    "children": []
+                  },
+                  {
+                    "id": "L1-050",
+                    "name": "过失",
+                    "level": 1,
+                    "level_label": "T1 因素链条",
+                    "path": "主体 - 意识本体/超我/规则权限/过失",
+                    "perm": "只读（审核后写入）",
+                    "limit": -1,
+                    "life": "永久",
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "L0-007",
+                "name": "人性红线",
+                "level": 0,
+                "level_label": "T0 记忆构成",
+                "path": "主体 - 意识本体/超我/人性红线",
+                "perm": "只读",
+                "limit": -1,
+                "life": "永久",
+                "children": []
+              }
+            ],
+            "noChain": true
+          },
+          {
+            "id": "L1-053",
+            "name": "碎片",
+            "level": 1,
+            "level_label": "分区",
+            "perm": "只读（审核后写入）",
+            "limit": -1,
+            "life": "30 天",
+            "children": [],
+            "path": "主体 - 意识本体/碎片",
+            "noChain": true
+          }
+        ]
+      },
+      {
+        "id": "L1-032",
+        "name": "成长日记",
+        "level": 0,
+        "level_label": "T0 记忆构成",
+        "path": "成长日记",
+        "perm": "只读",
+        "limit": -1,
+        "life": "永久",
+        "children": [],
+        "nullable": false
+      },
+      {
+        "id": "L0-013",
+        "name": "项目记录",
+        "level": 0,
+        "level_label": "T0 记忆构成",
+        "path": "项目记录",
+        "perm": "只读",
+        "limit": -1,
+        "life": "30 天",
+        "children": []
+      }
+    ]
+  },
+  "personas": [],
+  "tracks": {
+    "memory": "",
+    "user": "",
+    "project": "",
+    "key": "",
+    "daily": {}
+  },
+  "store": {},
+  "state": {},
+  "auto": {
+    "intake": false,
+    "tidy": false,
+    "intakeEveryHours": 2,
+    "tidyEveryHours": 24,
+    "lastIntakeAt": 0,
+    "lastTidyAt": 0,
+    "doneSids": []
+  }
+}

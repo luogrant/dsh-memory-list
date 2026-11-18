@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>记忆树</title>
+<style>
+  :root{
+    /* 配色抄 dsh-memory-tree：直接用 DSH 主题变量，取不到才用兜底 */
+    --bg:var(--dsw-specific-sidebar-fill,#14161a);
+    --bg2:var(--dsw-alias-bg-layer-1,#1b1e24);
+    --bg3:var(--dsw-alias-bg-layer-2,#22262e);
+    --line:var(--dsw-alias-border-l3,#2c313a);
+    --fg:var(--dsw-alias-label-primary,#e8eaf0);
+    --dim:var(--dsw-alias-label-secondary,#98a0b0);
+    --dim2:var(--dsw-alias-label-tertiary,#7c8496);
+    --hover:var(--dsw-alias-interactive-bg-hover,rgba(127,127,127,.14));
+    --r:var(--dsw-radius-sm,8px);
+    --rx:var(--dsw-radius-xl,12px);
+    --accent:#7aa2ff;--warn:#f0c674;--bad:#ff8f8f;--ok:#8ce8be
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font:14px/1.55 "Microsoft YaHei","PingFang SC",system-ui,sans-serif}
+  body{display:flex;flex-direction:column;overflow:hidden}
+  header{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--line);flex:0 0 auto;background:var(--bg2)}
+  html.embedded,html.embedded body{background:transparent}
+  html.embedded body{background:rgba(24,26,32,.62)}
+  html.embedded header{background:transparent;border-bottom-color:rgba(127,127,127,.18)}
+  html.embedded .searchrow .q{background:rgba(127,127,127,.12);border-color:rgba(127,127,127,.18)}
+  html.embedded .row{background:rgba(127,127,127,.10);border-color:transparent}
+  html.embedded .row:hover{background:rgba(127,127,127,.18)}
+  html.embedded .mem{background:rgba(127,127,127,.07);border-color:rgba(127,127,127,.12)}
+  html.embedded .acts button{background:rgba(127,127,127,.14);border-color:rgba(127,127,127,.20)}
+  .acts{margin-left:auto;display:flex;gap:6px}
+.autochk{display:flex;align-items:center;gap:5px;margin-left:12px;font-size:13px;color:#9aa7bd;cursor:pointer;user-select:none}
+.autochk input{accent-color:#7aa2ff;width:13px;height:13px;cursor:pointer}
+.autochk:hover{color:#dbe3f2}
+.btn.manual{margin-left:10px;background:#232a36;border:1px solid #38414f;color:#cfd6e4;padding:4px 11px;border-radius:8px;cursor:pointer;font-size:12px}
+.btn.manual:hover{background:#2b3442;color:#fff}
+.btn.manual:disabled{opacity:.55;cursor:default}
+  .acts button{background:#232a36;border:1px solid #38414f;color:#cfd6e4;padding:5px 13px;border-radius:8px;cursor:pointer;font-size:13px}
+  .acts button:hover{background:#2b3442;color:#fff}
+  .acts button.on{background:#7aa2ff;border-color:#7aa2ff;color:#0b0e14;font-weight:600}
+  .searchrow{flex:0 0 auto;padding:8px 14px 4px}
+  .searchrow .q{width:100%;padding:7px 12px;border-radius:9px;border:1px solid var(--line);background:#1a1f28;color:var(--fg);outline:none;font-size:13px}
+  .searchrow .q:focus{border-color:var(--accent)}
+  .stat{flex:0 0 auto;padding:0 14px 6px;color:var(--dim);font-size:12px}
+  main{flex:1 1 auto;overflow:hidden;position:relative}
+  .page{position:absolute;inset:0;display:none;overflow:auto}
+  .page.on{display:block}
+  #pg-list{padding:4px 10px 60px}
+  #pg-list iframe,.page iframe{width:100%;height:100%;border:0;display:block}
+  .row{display:flex;align-items:center;gap:8px;margin:4px 0;padding:9px 12px;border-radius:var(--r);cursor:pointer;user-select:none;position:relative;background:rgba(127,127,127,.09);border:1px solid transparent}
+  .row:hover{background:var(--hover)}
+  .chev{width:14px;flex:0 0 14px;color:var(--dim);font-size:10px;text-align:center}
+  .chev.empty{display:none}
+  .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nm{display:flex;align-items:baseline;gap:0;min-width:0;flex:1 1 auto;flex-wrap:wrap}
+  .dsc{font-size:14px;color:#8f9ab1;font-weight:400;white-space:normal}
+  .name.t0{font-size:18.5px;font-weight:600}.name.t1{font-size:16px;font-weight:600}
+  .name.t2{font-size:14px;font-weight:400}.name.t3{font-size:14px;font-weight:400;color:#d6d9e2}
+  .lvtag{font-size:11px;padding:1px 7px;border-radius:5px;background:#2a2f3a;color:#9aa3b2;flex:0 0 auto;font-weight:500}
+  .tag{font-size:11px;padding:1px 6px;border-radius:999px;background:#2a2f3a;color:var(--dim);flex:0 0 auto}
+  .tag.warn{color:var(--warn);background:#3a3220}
+  .tag.ok{color:var(--ok);background:#1e3a30}
+  .ops{margin-left:auto;display:none;gap:4px;flex:0 0 auto}
+  .row:hover .ops,.mem:hover .ops{display:flex}
+  .ops b{font-size:11px;font-weight:500;padding:1px 7px;border-radius:6px;background:rgba(255,255,255,.08);color:var(--dim);cursor:pointer;white-space:nowrap}
+  .ops b:hover{background:rgba(122,162,255,.22);color:var(--fg)}
+  .ops b.del:hover{background:rgba(255,120,120,.2);color:#ffb3b3}
+  .mem{margin:3px 0;padding:7px 12px;font-size:16px;color:var(--fg);line-height:1.55;border-radius:var(--r);background:var(--bg2);border:1px solid var(--line);display:flex;gap:10px;align-items:flex-start;position:relative}
+  .mem:hover{background:var(--hover)}
+  .mem .x{flex:1 1 auto;overflow-wrap:anywhere}
+  .mem .tm{color:var(--dim);font-size:13px;flex:0 0 auto;padding-top:3px;font-variant-numeric:tabular-nums}
+  .dhead{font-size:13px;color:var(--dim);padding:10px 4px 2px;letter-spacing:.3px;font-variant-numeric:tabular-nums}
+  .note{margin:4px 0 6px;padding:10px 14px;border-left:2px solid #4a5f8f;background:#151b27;color:#9fabc2;font-size:14px;line-height:1.6;white-space:pre-wrap;border-radius:0 6px 6px 0}
+  .empty{color:var(--dim);padding:24px 16px;text-align:center}
+  .err{color:var(--bad);padding:16px;white-space:pre-wrap}
+  /* 五轨 */
+  #pg-track{display:none;grid-template-columns:220px 1fr;height:100%}
+  #pg-track.on{display:grid}
+  .side{border-right:1px solid var(--line);padding:10px;overflow:auto;background:var(--bg2)}
+  .side .tk{padding:7px 10px;border-radius:8px;cursor:pointer;color:var(--dim);display:flex;justify-content:space-between;font-size:13px}
+  .side .tk:hover{background:rgba(255,255,255,.05);color:var(--fg)}
+  .side .tk.on{background:rgba(122,162,255,.16);color:var(--fg)}
+  .side .tk i{font-style:normal;font-size:11px;color:var(--dim)}
+  .side select{width:100%;margin-top:10px;padding:6px;border-radius:8px;background:var(--bg);color:var(--fg);border:1px solid var(--line)}
+  .main2{display:flex;flex-direction:column;height:100%;overflow:hidden}
+  .bar{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--line);flex:0 0 auto}
+  .bar h2{font-size:14px;margin:0;font-weight:600}
+  .bar .cnt{color:var(--dim);font-size:12px}
+  .bar label{color:var(--dim);font-size:12px;display:flex;gap:4px;align-items:center;margin-left:auto;cursor:pointer}
+  .list{flex:1 1 auto;overflow:auto;padding:6px 14px 120px}
+  .e{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:8px 0;background:var(--bg2);position:relative}
+  .e .hd{display:flex;gap:8px;font-size:11px;color:var(--dim);margin-bottom:4px;align-items:center}
+  .e .id{font-family:ui-monospace,Consolas,monospace;color:#6f7a8c}
+  .e .bd{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}
+  .e .ops{display:flex;margin-left:auto;position:static}
+  .composer{flex:0 0 auto;border-top:1px solid var(--line);padding:10px 14px;display:flex;gap:8px;align-items:flex-end;background:var(--bg2)}
+  .composer textarea{flex:1 1 auto;min-height:64px;max-height:200px;resize:vertical;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:13px/1.5 inherit;outline:none}
+  .composer textarea:focus{border-color:var(--accent)}
+  .btn{background:rgba(122,162,255,.18);border:1px solid rgba(122,162,255,.35);color:var(--fg);padding:7px 14px;border-radius:9px;cursor:pointer;font-size:13px}
+  .btn:hover{background:rgba(122,162,255,.3)}
+  .btn.ghost{background:transparent;border-color:var(--line);color:var(--dim)}
+  .btn.ghost:hover{color:var(--fg);border-color:var(--dim)}
+  /* 人设 */
+  #pg-persona.on{display:grid;grid-template-columns:260px 1fr;height:100%;overflow:hidden}
+#pg-intake{display:none;grid-template-columns:320px 1fr;height:100%;overflow:hidden}
+#pg-intake.on{display:grid}
+.ses{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:7px;cursor:pointer}
+.ses:hover{background:var(--hover)}
+.ses input{margin-top:3px;flex:0 0 auto}
+.ses .t{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ses .d{color:var(--dim2);font-size:11px;white-space:nowrap;flex:0 0 auto}
+.sesact{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line);flex-wrap:wrap}
+  #pg-persona{display:none}
+  .plist{border-right:1px solid var(--line);overflow:auto;background:var(--bg2)}
+  .pit{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+  .pit:hover{background:rgba(255,255,255,.04)}
+  .pit.on{background:rgba(122,162,255,.14)}
+  .pit .nm{font-size:13px;display:flex;gap:6px;align-items:center}
+  .pit .st{font-size:11px;color:var(--dim);margin-top:2px}
+  .pedit{display:flex;flex-direction:column;height:100%;overflow:hidden}
+  .pedit .f{display:flex;gap:10px;align-items:center;padding:6px 14px;flex-wrap:wrap}
+  .pedit .f label{font-size:12px;color:var(--dim);display:flex;gap:4px;align-items:center;cursor:pointer}
+  .pedit input[type=text],.pedit select{background:var(--bg);border:1px solid var(--line);color:var(--fg);border-radius:8px;padding:6px 8px;font-size:13px;outline:none}
+  .pedit textarea{flex:1 1 auto;margin:0 14px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px;font:13px/1.6 ui-monospace,Consolas,monospace;resize:none;outline:none}
+  /* 状态 */
+  #pg-status{padding:16px 20px}
+  .kv{display:grid;grid-template-columns:180px 1fr;gap:6px 14px;max-width:820px;font-size:13px}
+  .kv .k{color:var(--dim)}
+  .kv .v{font-family:ui-monospace,Consolas,monospace;overflow-wrap:anywhere}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#2a3242;border:1px solid var(--line);color:var(--fg);padding:8px 16px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;z-index:50}
+  .toast.on{opacity:1}
+  dialog{border:1px solid var(--line);border-radius:12px;background:var(--bg2);color:var(--fg);padding:16px;min-width:420px;max-width:80vw}
+  dialog::backdrop{background:rgba(0,0,0,.5)}
+  dialog h3{margin:0 0 10px;font-size:14px}
+  dialog textarea{width:100%;min-height:120px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px;font:13px/1.5 inherit}
+  dialog input[type=text]{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:13px}
+  dialog .dbar{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+  .hint{color:var(--dim);font-size:12px;padding:0 14px 8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>记忆空间</h1>
+  <label class="autochk" title="每 2 小时自动扫会话汲取"><input type="checkbox" id="autoIntake"> 自动汲取</label>
+  <label class="autochk" title="每 24 小时自动把「S 记忆汲取」整理进 M/W"><input type="checkbox" id="autoTidy"> 自动整理</label>
+  <button class="btn manual" id="btnTidyNow" title="立刻把「S 记忆汲取」里的条目整理进 M/W">手动整理</button>
+  <div class="acts">
+    <button data-pg="list" class="on">列表</button>
+    <button data-pg="intake">汲取</button>
+    <button data-pg="orbit">星图</button>
+    <button data-pg="persona">人设</button>
+    <button data-pg="track">五轨</button>
+    <button id="btnRefresh">刷</button>
+  </div>
+</header>
+<div class="searchrow"><input class="q" id="q" placeholder="查找记忆…（关键词或路径）" autocomplete="off"></div>
+<div class="stat" id="revtag">—</div>
+<main>
+  <section class="page on" id="pg-list"><div id="tree"><div class="empty">加载中…</div></div></section>
+  <section class="page" id="pg-orbit"><iframe id="orbitFrame" title="星轨" src="about:blank"></iframe></section>
+  <section class="page" id="pg-track">
+    <aside class="side">
+      <div id="trackList"></div>
+      <select id="daySel" title="流水日期"></select>
+    </aside>
+    <div class="main2">
+      <div class="bar">
+        <h2 id="trackTitle">五轨</h2><span class="cnt" id="trackCnt"></span>
+        <label><input type="checkbox" id="archivedBox"> 看归档</label>
+      </div>
+      <div class="list" id="trackBody"><div class="empty">选择左边一条轨</div></div>
+      <div class="composer">
+        <textarea id="trackNew" placeholder="写一条新记忆…（Ctrl+Enter 保存）"></textarea>
+        <input type="text" id="trackSummary" placeholder="摘要（key 轨用）" style="width:200px;background:var(--bg);border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:8px 10px;font-size:13px;outline:none">
+        <button class="btn" id="trackAddBtn">写入</button>
+      </div>
+    </div>
+  </section>
+  <section class="page" id="pg-persona">
+    <aside class="plist" id="personaList"></aside>
+    <div class="pedit">
+      <div class="f">
+        <input type="text" id="psName" placeholder="人设名称" style="width:220px">
+        <label><input type="checkbox" id="psEnabled"> 启用</label>
+        <label><input type="checkbox" id="psFallback"> 兜底</label>
+        <select id="psMode"><option value="append">追加</option><option value="replace">替换</option></select>
+        <button class="btn" id="psSave">保存</button>
+        <button class="btn ghost" id="psNew">新建</button>
+        <button class="btn ghost" id="psDel">删除</button>
+      </div>
+      <div class="hint">人设正文（第 1 个启用的人设会注入会话；mode=replace 会替换默认设定，append 只追加）</div>
+      <textarea id="psText" placeholder="人设正文…"></textarea>
+    </div>
+  </section>
+  <section class="page" id="pg-intake">
+    <aside class="side">
+      <div class="bar" style="padding:0 0 8px;border:0"><h2>选择会话</h2><span class="cnt" id="sesCnt"></span></div>
+      <div id="sesList"><div class="empty">读取中…</div></div>
+      <div class="sesact">
+        <button class="btn" id="sesAll">全选</button>
+        <button class="btn" id="sesNone">清空</button>
+        <button class="btn" id="sesScan">开始汲取</button>
+        <button class="btn" id="sesDry">只看不写</button>
+      </div>
+      <div class="hint" style="padding:0 8px 8px">「汲取」会读会话日志，交模型按树上已有节点提炼，写进对应节点。花钱的步子是模型调用。</div>
+    </aside>
+    <div class="main2">
+      <div class="bar">
+        <h2 id="intakeTitle">汲取结果</h2><span class="cnt" id="intakeCnt"></span>
+        <button class="btn" id="sesTidy" style="margin-left:auto" title="整理对象是「S 记忆汲取」节点里已攒下的记忆，不读会话、跟勾选无关">整理 S 记忆汲取</button>
+      </div>
+      <div class="hint" style="padding:0 0 8px">整理只处理「S 记忆汲取」节点里的条目：有效的写进 M 瞬时记忆，垃圾写进 W 垃圾记忆，重复的合并成一条。跟上面勾了哪些会话没关系。</div>
+      <div class="list" id="intakeBody"><div class="empty">先在左边选会话，再点「开始汲取」或「只看不写」</div></div>
+    </div>
+  </section>
+  <section class="page" id="pg-status"><div class="kv" id="statusBody"><div class="k">读取中…</div></div></section>
+</main>
+<div class="toast" id="toast"></div>
+<dialog id="dlg">
+  <h3 id="dlgTitle">编辑</h3>
+  <input type="text" id="dlgInput" style="display:none">
+  <textarea id="dlgText" style="display:none"></textarea>
+  <div class="dbar"><button class="btn ghost" id="dlgCancel">取消</button><button class="btn" id="dlgOk">确定</button></div>
+</dialog>
+<script>
+(function () {
+  'use strict';
+  if (window.top !== window.self) {
+    document.documentElement.classList.add('embedded');
+    // 抄 dsh-memory-tree 的做法：DSH 的主题色是 CSS 变量，同源可以从父窗口读过来。
+    var DSW = ['--dsw-specific-sidebar-fill', '--dsw-alias-bg-layer-1', '--dsw-alias-bg-layer-2',
+      '--dsw-alias-label-primary', '--dsw-alias-label-secondary', '--dsw-alias-label-tertiary',
+      '--dsw-alias-border-l3', '--dsw-alias-interactive-bg-hover', '--dsw-radius-sm', '--dsw-radius-xl'];
+    try {
+      var pcs = getComputedStyle(window.parent.document.documentElement);
+      for (var vi = 0; vi < DSW.length; vi++) {
+        var vv = pcs.getPropertyValue(DSW[vi]);
+        if (vv && vv.trim()) document.documentElement.style.setProperty(DSW[vi], vv.trim());
+      }
+    } catch (e) { /* 跨源就吃兜底色 */ }
+  }
+
+  var OPEN = new Set();
+  var DATA = null, KW = '', TRACK = 'memory', ARCHIVED = false, PERSONAS = [], PSEL = null, LASTREV = '';
+
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+  function toast(msg, bad) {
+    var t = $('toast'); t.textContent = msg; t.style.color = bad ? '#ffb3b3' : '#e8eaf0'; t.classList.add('on');
+    clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove('on'); }, 2200);
+  }
+  function api(path, opt) {
+    var o = Object.assign({ headers: {} }, opt || {});
+    if (o.body && typeof o.body !== 'string') { o.body = JSON.stringify(o.body); o.headers['content-type'] = 'application/json'; }
+    return fetch(path, o).then(function (r) { return r.json().catch(function () { return { ok: false, error: 'HTTP ' + r.status }; }); })
+      .then(function (j) { if (!j || j.ok === false) throw new Error((j && j.error) || '请求失败'); return j; });
+  }
+  function fmtDay(d) { return d; }
+
+  // ---------- 页签 ----------
+  var PAGES = ['list', 'orbit', 'track', 'persona', 'intake', 'status'];
+  function show(pg) {
+    PAGES.forEach(function (k) { $('pg-' + k).classList.toggle('on', k === pg); });
+    Array.prototype.forEach.call(document.querySelectorAll('.acts button[data-pg]'), function (b) { b.classList.toggle('on', b.dataset.pg === pg); });
+    document.body.classList.toggle('is-list', pg === 'list');
+    if (pg === 'orbit') {
+      var f = $('orbitFrame');
+      if (f.dataset.loaded !== '1') { f.src = 'orbit'; f.dataset.loaded = '1'; }
+      else if (f.dataset.stale === '1') { f.contentWindow.location.reload(); f.dataset.stale = '0'; }
+    }
+    if (pg === 'track') loadTracks();
+    if (pg === 'intake') loadSessions();
+    if (pg === 'persona') loadPersonas();
+    if (pg === 'status') loadStatus();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.acts button[data-pg]'), function (b) {
+    b.addEventListener('click', function () { show(b.dataset.pg); });
+  });
+  $('btnRefresh').addEventListener('click', function () { loadList(KW); toast('已刷新'); });
+
+  // ---------- 汲取（会话 → 记忆） ----------
+  var SES = [];
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function fmtTime(ms) {
+    var d = new Date(Number(ms));
+    if (isNaN(d.getTime())) return '';
+    return (d.getMonth() + 1) + '-' + d.getDate() + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+  function renderSessions() {
+    var box = $('sesList'); box.innerHTML = '';
+    $('sesCnt').textContent = SES.length + ' 个会话';
+    SES.forEach(function (s) {
+      var row = el('div', 'ses');
+      var cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!s.picked;
+      var t = el('div', 't', s.title || s.sid.slice(0, 8));
+      var d = el('div', 'd', fmtTime(s.mtime));
+      row.appendChild(cb); row.appendChild(t); row.appendChild(d);
+      row.addEventListener('click', function (e) {
+        if (e.target !== cb) cb.checked = !cb.checked;
+        s.picked = cb.checked;
+      });
+      box.appendChild(row);
+    });
+  }
+  function loadSessions() {
+    if (SES.length) { renderSessions(); return; }
+    $('sesList').innerHTML = '<div class="empty">读取中…</div>';
+    api('api/sessions').then(function (j) {
+      SES = (j.sessions || []).map(function (s) { s.picked = false; return s; });
+      renderSessions();
+    }).catch(function (e) { $('sesList').innerHTML = '<div class="empty">读会话失败：' + e.message + '</div>'; });
+  }
+  function runScan(dry) {
+    var ids = SES.filter(function (s) { return s.picked; }).map(function (s) { return s.sid; });
+    if (!ids.length) { toast('先选会话', 1); return; }
+    var btn = dry ? $('sesDry') : $('sesScan');
+    var old = btn.textContent; btn.disabled = true; btn.textContent = '跑…';
+    $('intakeBody').innerHTML = '<div class="empty">模型正在提炼，别关页面…</div>';
+    api('api/intake/scan', { method: 'POST', body: { ids: ids, apply: !dry, maxTurns: 6 } })
+      .then(function (j) { renderScan(j, dry); if (!dry && j.written) loadList(KW); })
+      .catch(function (e) { $('intakeBody').innerHTML = '<div class="empty">失败：' + e.message + '</div>'; })
+      .then(function () { btn.disabled = false; btn.textContent = old; });
+  }
+  function renderScan(j, dry) {
+    var box = $('intakeBody'); box.innerHTML = '';
+    $('intakeTitle').textContent = dry ? '预览（未写入）' : '汲取结果';
+    $('intakeCnt').textContent = '写 ' + (j.written || 0) + ' 条 / 扫 ' + (j.scannedTurns || 0) + ' 轮';
+    if (j.error) box.appendChild(el('div', 'empty', '提示：' + j.error));
+    (j.sessions || []).forEach(function (s) {
+      box.appendChild(el('div', 'dhead', (s.title || s.sid) + ' · ' + (s.turns || 0) + ' 轮 · 写 ' + (s.written || 0) + ' 条'));
+      if (s.error) { box.appendChild(el('div', 'empty', s.error)); return; }
+      (s.items || []).forEach(function (it) {
+        var m = el('div', 'mem');
+        m.appendChild(el('span', 'x', it.text));
+        m.appendChild(el('span', 'tm', it.path));
+        box.appendChild(m);
+      });
+      if (!(s.items || []).length) box.appendChild(el('div', 'empty', '（这一轮没提炼出值得记的）'));
+    });
+  }
+  $('sesAll').addEventListener('click', function () { SES.forEach(function (s) { s.picked = true; }); renderSessions(); });
+  $('sesNone').addEventListener('click', function () { SES.forEach(function (s) { s.picked = false; }); renderSessions(); });
+  $('sesScan').addEventListener('click', function () { runScan(false); });
+  $('sesDry').addEventListener('click', function () { runScan(true); });
+  function runTidy() {
+    var btn = $('sesTidy');
+    var old = btn.textContent; btn.disabled = true; btn.textContent = '整理中…';
+    $('intakeBody').innerHTML = '<div class="empty">整理「S 记忆汲取」里待分类的条目…</div>';
+    api('api/intake/tidy', { method: 'POST', body: { apply: true } })
+      .then(function (j) { renderTidy(j); loadList(KW); })
+      .catch(function (e) { $('intakeBody').innerHTML = '<div class="empty">失败：' + e.message + '</div>'; })
+      .then(function () { btn.disabled = false; btn.textContent = old; });
+  }
+  function renderTidy(j) {
+    var box = $('intakeBody'); box.innerHTML = '';
+    $('intakeTitle').textContent = '整理结果';
+    $('intakeCnt').textContent = 'S 里 ' + (j.total || 0) + ' 条 · 搬走 ' + (j.moved || 0) + ' 条';
+    if (j.message) box.appendChild(el('div', 'empty', j.message));
+    [['有效 → M 瞬时记忆', j.keep], ['垃圾 → W 垃圾记忆', j.trash], ['合并 → M 瞬时记忆', j.merged]].forEach(function (p) {
+      var list = p[1] || [];
+      if (!list.length) return;
+      box.appendChild(el('div', 'dhead', p[0] + '（' + list.length + '）'));
+      list.forEach(function (t) {
+        var m = el('div', 'mem');
+        m.appendChild(el('span', 'x', t));
+        box.appendChild(m);
+      });
+    });
+  }
+  $('sesTidy').addEventListener('click', runTidy);
+
+  // ---------- 记忆列表 ----------
+  function fetchTree(kw) { return api('api/tree' + (kw ? '?q=' + encodeURIComponent(kw) : '')); }
+  function childMap(rows) {
+    var m = new Map();
+    rows.forEach(function (r) { var p = r.parentKey || ''; if (!m.has(p)) m.set(p, []); m.get(p).push(r); });
+    return m;
+  }
+  function memRows(node, depth, noHead) {
+    var out = [], mems = (node.memories || []).slice(), groups = new Map();
+    mems.forEach(function (m) { var d = m.day || '未标日期'; if (!groups.has(d)) groups.set(d, []); groups.get(d).push(m); });
+    Array.from(groups.keys()).sort().reverse().forEach(function (d) {
+      if (!noHead) { var head = el('div', 'dhead', String(d).replace(/-/g, '.')); head.style.marginLeft = (18 + depth * 16) + 'px'; out.push(head); }
+      groups.get(d).sort(function (a, b) { return String(b.t || '').localeCompare(String(a.t || '')); }).forEach(function (m) {
+        var line = el('div', 'mem'); line.style.marginLeft = (18 + depth * 16) + 'px';
+        line.appendChild(el('span', 'x', m.text || ''));
+        line.appendChild(el('span', 'tm', m.t || ''));
+        var ops = el('span', 'ops');
+        var b1 = el('b', null, '改'), b2 = el('b', 'del', '删');
+        b1.addEventListener('click', function (e) { e.stopPropagation(); editMemory(m); });
+        b2.addEventListener('click', function (e) { e.stopPropagation(); delMemory(m); });
+        ops.appendChild(b1); ops.appendChild(b2); line.appendChild(ops);
+        out.push(line);
+      });
+    });
+    return out;
+  }
+  function editMemory(m) {
+    openDlg('改这条记忆', 'text', m.text || '', function (v) {
+      if (!v.trim()) throw new Error('不能改成空');
+      return api('api/memory/update', { method: 'POST', body: { day: m.day, t: m.t, text: m.text, path: m.path, newText: v } }).then(function () { toast('已改'); loadList(KW); });
+    });
+  }
+  function delMemory(m) {
+    if (!confirm('删除这条记忆？\n\n' + String(m.text || '').slice(0, 120))) return;
+    api('api/memory/delete', { method: 'POST', body: { day: m.day, t: m.t, text: m.text, path: m.path } })
+      .then(function () { toast('已删'); loadList(KW); }).catch(function (e) { toast(e.message, 1); });
+  }
+  function nodeOps(node, depth) {
+    var ops = el('span', 'ops');
+    if (node.special) return ops;
+    if (depth <= 1) {
+      var b = el('b', null, '＋节点');
+      b.addEventListener('click', function (e) {
+        e.stopPropagation();
+        openDlg('在「' + node.name + '」下加子节点', 'input', '', function (v) {
+          if (!v.trim()) throw new Error('名称为空');
+          return api('api/tree/add-node', { method: 'POST', body: { parentKey: node.key, name: v.trim() } }).then(function () { toast('已加节点'); loadList(KW); });
+        });
+      });
+      ops.appendChild(b);
+      var r = el('b', null, '改名');
+      r.addEventListener('click', function (e) {
+        e.stopPropagation();
+        openDlg('改名：' + node.name, 'input', node.name, function (v) {
+          if (!v.trim()) throw new Error('名称为空');
+          return api('api/tree/rename', { method: 'POST', body: { key: node.key, name: v.trim() } }).then(function () { toast('已改名'); loadList(KW); });
+        });
+      });
+      ops.appendChild(r);
+    }
+    var d = el('b', 'del', '删除');
+    d.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (!confirm('删除节点「' + node.key + '」？只有空节点删得掉。')) return;
+      api('api/tree/delete-node', { method: 'POST', body: { key: node.key } }).then(function () { toast('已删节点'); loadList(KW); }).catch(function (er) { toast(er.message, 1); });
+    });
+    ops.appendChild(d);
+    return ops;
+  }
+  function renderNode(node, depth, kids, frag) {
+    var hasKids = (kids.get(node.key) || []).length > 0;
+    var mems = node.memories || [];
+    var row = el('div', 'row');
+    row.style.marginLeft = (4 + depth * 16) + 'px';
+    row.appendChild(el('span', 'chev' + (hasKids || mems.length ? '' : ' empty'), OPEN.has(node.key) ? '▼' : '▶'));
+    // 2026-11-15 作者：T0 不加编号徽标，按列表标注来，没标的就没有编号
+    var nm = el('span', 'nm');
+    var lvl = (node.level === 0 || node.level) ? node.level : depth;
+    var label = node.name, lastDay = '';
+    if (lvl >= 1 && depth >= 2) {
+      var ds = (mems || []).map(function (m) { return m.day; }).filter(Boolean).sort();
+      var dstr = ds.length ? String(ds[ds.length - 1]).replace(/-/g, '.') : '';
+      // 2026-11-15 作者：编号前缀一律不显示，名字或日期直接上
+      if (dstr) label = dstr;
+      else label = node.name;
+    }
+    // 2026-11-15 作者：非根节点名字前标层级（T0/T1/T2/T3/T4/Q5），根节点不标；日期分组头不标
+    var LEVEL_TAGS = ['T0', 'T1', 'T2', 'T3', 'T4', 'Q5'];
+    if (depth > 0 && !node.noChain && label === node.name && lvl >= 0 && lvl <= 5) label = LEVEL_TAGS[lvl] + ' ' + label;
+    var cls = lvl <= 0 ? 0 : (lvl === 1 ? (depth <= 1 ? 0 : 1) : 2);
+    var nameEl = el('span', 'name t' + cls, label);
+    var NODECOLOR = { '执行规则': '#ff6b6b', 'S 记忆汲取': '#5dd88a', 'M 瞬时记忆': '#5dd88a', 'W 垃圾记忆': '#5dd88a', '项目记录': '#6fb6ff', '成长日记': '#b98cff', '主体 - 意识本体': '#ff9ecb' };
+    if (NODECOLOR[node.name]) nameEl.style.color = NODECOLOR[node.name];
+    nm.appendChild(nameEl);
+    if (node.dsc) nm.appendChild(el('span', 'dsc', '\u00A0-\u00A0（' + node.dsc + '）'));
+    if (node.life) nm.appendChild(el('span', 'dsc', '（' + node.life + '）'));
+    row.appendChild(nm);
+    if (mems.length) row.appendChild(el('span', 'tag', String(mems.length)));
+    if (node.synthetic) row.appendChild(el('span', 'tag', '未登记'));
+    if (node.special) row.appendChild(el('span', 'tag ok', ({ todo: '待处理', pending: '待确认', archive: '该归档', promote: '该升层', m: '自主' })[node.special] || node.special));
+    row.appendChild(nodeOps(node, depth));
+    row.addEventListener('click', function () {
+      if (OPEN.has(node.key)) OPEN.delete(node.key); else OPEN.add(node.key);
+      paint();
+    });
+    frag.appendChild(row);
+    if (!OPEN.has(node.key)) return;
+    memRows(node, depth, lvl === 1).forEach(function (n) { frag.appendChild(n); });
+    (kids.get(node.key) || []).forEach(function (c) { renderNode(c, depth + 1, kids, frag); });
+  }
+  function paint() {
+    var host = $('tree'); host.textContent = '';
+    if (!DATA) return;
+    var rows = DATA.rows || [], kids = childMap(rows), frag = document.createDocumentFragment();
+    (kids.get('') || []).forEach(function (r) { renderNode(r, 0, kids, frag); });
+    if (!frag.childNodes.length) frag.appendChild(el('div', 'empty', KW ? '没有匹配的记忆' : '还没有记忆'));
+    host.appendChild(frag);
+    var s = DATA.stats || {};
+    $('revtag').textContent = (DATA.total || 0) + ' 条记忆 · ' + (s.nodes || 0) + ' 个节点'
+      + (KW ? '（筛选）' : '') + ' · 点行展开，右侧操作';
+  }
+  function loadList(kw) {
+    KW = kw || '';
+    return fetchTree(KW).then(function (j) { DATA = j; paint(); })
+      .catch(function (e) { var h = $('tree'); h.textContent = ''; h.appendChild(el('div', 'err', '读取失败：' + e.message)); });
+  }
+  $('q').addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+    var kw = e.target.value.trim();
+    var pg = document.querySelector('.acts button[data-pg].on').dataset.pg;
+    if (pg === 'track') { loadTrackBody(kw); return; }
+    if (kw) OPEN.clear();
+    loadList(kw);
+  });
+
+  // ---------- 五轨 ----------
+  function loadTracks() {
+    api('api/tracks').then(function (j) {
+      var box = $('trackList'); box.textContent = '';
+      (j.tracks || []).forEach(function (t) {
+        var n = el('div', 'tk' + (t.track === TRACK ? ' on' : ''));
+        n.appendChild(el('span', null, t.label));
+        n.appendChild(el('i', null, String(t.count)));
+        n.addEventListener('click', function () { TRACK = t.track; loadTracks(); });
+        box.appendChild(n);
+      });
+      var sel = $('daySel');
+      sel.style.display = TRACK === 'daily' ? '' : 'none';
+      if (TRACK === 'daily') {
+        var days = j.dailyDays || [];
+        sel.textContent = '';
+        if (!days.length) sel.appendChild(el('option', null, '（还没有流水）'));
+        days.forEach(function (d) { var o = el('option', null, d); o.value = d; sel.appendChild(o); });
+        sel.value = days[0] || '';
+      }
+      loadTrackBody('');
+    }).catch(function (e) { toast(e.message, 1); });
+  }
+  function loadTrackBody(kw) {
+    var url = 'api/tracks/' + TRACK + '?archived=' + (ARCHIVED ? '1' : '0');
+    if (TRACK === 'daily') url += '&date=' + encodeURIComponent($('daySel').value || '');
+    if (kw) url += '&filter=' + encodeURIComponent(kw);
+    api(url).then(function (j) {
+      var host = $('trackBody'); host.textContent = '';
+      $('trackTitle').textContent = j.label + (ARCHIVED ? '（归档）' : '');
+      $('trackCnt').textContent = (j.entries || []).length + ' 条';
+      $('trackSummary').style.display = TRACK === 'key' ? '' : 'none';
+      if (!(j.entries || []).length) { host.appendChild(el('div', 'empty', '这条轨还是空的')); return; }
+      (j.entries || []).slice().reverse().forEach(function (e) {
+        var box = el('div', 'e');
+        var hd = el('div', 'hd');
+        if (e.date) hd.appendChild(el('span', null, e.date));
+        if (e.summary) hd.appendChild(el('span', null, e.summary));
+        hd.appendChild(el('span', 'id', '#' + (e.id || '')));
+        var ops = el('span', 'ops');
+        if (!ARCHIVED) {
+          var b1 = el('b', null, '改'), b2 = el('b', 'del', '删'), b3 = el('b', null, '归档');
+          b1.addEventListener('click', function () {
+            openDlg('改这条（用原文片段定位）', 'text', e.body, function (v) {
+              return api('api/tracks/' + TRACK + '/replace', { method: 'POST', body: { match: '#' + e.id, content: v, date: e.date } }).then(function () { toast('已改'); loadTrackBody(kw); loadTracks(); });
+            });
+          });
+          b2.addEventListener('click', function () {
+            if (!confirm('删除这条？')) return;
+            api('api/tracks/' + TRACK + '/remove', { method: 'POST', body: { match: '#' + e.id, date: e.date } })
+              .then(function () { toast('已删'); loadTrackBody(kw); loadTracks(); }).catch(function (er) { toast(er.message, 1); });
+          });
+          ops.appendChild(b1); ops.appendChild(b2);
+          if (['memory', 'user', 'key'].indexOf(TRACK) >= 0) {
+            b3.addEventListener('click', function () {
+              if (!confirm('归档这条？')) return;
+              api('api/tracks/' + TRACK + '/archive', { method: 'POST', body: { match: '#' + e.id, date: e.date } })
+                .then(function () { toast('已归档'); loadTrackBody(kw); loadTracks(); }).catch(function (er) { toast(er.message, 1); });
+            });
+            ops.appendChild(b3);
+          }
+        }
+        hd.appendChild(ops);
+        box.appendChild(hd);
+        box.appendChild(el('div', 'bd', e.body || ''));
+        host.appendChild(box);
+      });
+    }).catch(function (e) { toast(e.message, 1); });
+  }
+  $('daySel').addEventListener('change', function () { loadTrackBody($('q').value.trim()); });
+  $('archivedBox').addEventListener('change', function () { ARCHIVED = this.checked; loadTrackBody($('q').value.trim()); });
+  function addTrackEntry() {
+    var content = $('trackNew').value.trim();
+    if (!content) return toast('内容为空', 1);
+    var body = { content: content };
+    if (TRACK === 'key') body.summary = $('trackSummary').value.trim();
+    if (TRACK === 'daily') body.date = $('daySel').value;
+    api('api/tracks/' + TRACK + '/add', { method: 'POST', body: body })
+      .then(function (r) { $('trackNew').value = ''; $('trackSummary').value = ''; toast('已写入 #' + r.id); loadTrackBody(''); loadTracks(); })
+      .catch(function (e) { toast(e.message, 1); });
+  }
+  $('trackAddBtn').addEventListener('click', addTrackEntry);
+  $('trackNew').addEventListener('keydown', function (e) { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); addTrackEntry(); } });
+
+  // ---------- 人设 ----------
+  function loadPersonas() {
+    api('api/personas').then(function (j) {
+      PERSONAS = j.items || [];
+      var box = $('personaList'); box.textContent = '';
+      if (!PERSONAS.length) box.appendChild(el('div', 'empty', '还没有人设'));
+      PERSONAS.forEach(function (p) {
+        var it = el('div', 'pit' + (p.id === PSEL ? ' on' : ''));
+        var nm = el('div', 'nm');
+        nm.appendChild(el('span', null, p.name || '（未命名）'));
+        nm.appendChild(el('span', 'tag' + (p.enabled ? ' ok' : ''), p.enabled ? '启用' : '停用'));
+        if (p.fallback) nm.appendChild(el('span', 'tag', '兜底'));
+        it.appendChild(nm);
+        it.appendChild(el('div', 'st', p.mode + ' · ' + String(p.text || '').length + ' 字'));
+        it.addEventListener('click', function () { PSEL = p.id; fillPersona(p); loadPersonas(); });
+        box.appendChild(it);
+      });
+      var cur = PERSONAS.find(function (p) { return p.id === PSEL; });
+      if (cur) fillPersona(cur);
+      else if (PERSONAS[0]) { PSEL = PERSONAS[0].id; fillPersona(PERSONAS[0]); }
+      else clearPersona();
+    }).catch(function (e) { toast(e.message, 1); });
+  }
+  function fillPersona(p) {
+    $('psName').value = p.name || '';
+    $('psEnabled').checked = !!p.enabled;
+    $('psFallback').checked = !!p.fallback;
+    $('psMode').value = p.mode || 'append';
+    $('psText').value = p.text || '';
+  }
+  function clearPersona() { $('psName').value = ''; $('psEnabled').checked = false; $('psFallback').checked = false; $('psMode').value = 'append'; $('psText').value = ''; }
+  $('psSave').addEventListener('click', function () {
+    var body = { name: $('psName').value.trim(), enabled: $('psEnabled').checked, fallback: $('psFallback').checked, mode: $('psMode').value, text: $('psText').value };
+    var p = PSEL ? api('api/personas/update', { method: 'POST', body: Object.assign({ id: PSEL }, body) })
+      : api('api/personas/add', { method: 'POST', body: body }).then(function (r) { PSEL = r.id; return r; });
+    p.then(function () { toast('已保存'); loadPersonas(); }).catch(function (e) { toast(e.message, 1); });
+  });
+  $('psNew').addEventListener('click', function () { PSEL = null; clearPersona(); $('psName').value = '新的人设'; $('psName').focus(); });
+  $('psDel').addEventListener('click', function () {
+    if (!PSEL) return toast('先选一条', 1);
+    if (!confirm('删除这条人设？')) return;
+    api('api/personas/delete', { method: 'POST', body: { id: PSEL } }).then(function () { PSEL = null; toast('已删'); loadPersonas(); }).catch(function (e) { toast(e.message, 1); });
+  });
+
+  // ---------- 状态 ----------
+  function loadStatus() {
+    api('api/status').then(function (j) {
+      var box = $('statusBody'); box.textContent = '';
+      var rows = [
+        ['数据文件', j.dataFile], ['文件大小', (j.size / 1024).toFixed(1) + ' KB'], ['内容版本', j.rev],
+        ['记忆条目', String(j.storeEntries) + ' 条 / ' + j.storeDays + ' 天'],
+        ['全局记忆', j.tracks.memory + ' 条'], ['用户档案', j.tracks.user + ' 条'], ['项目记忆', j.tracks.project + ' 条'],
+        ['关键记忆', j.tracks.key + ' 条'], ['流水天数', j.tracks.daily + ' 天'], ['人设', j.personas + ' 条'],
+      ];
+      rows.forEach(function (r) { box.appendChild(el('div', 'k', r[0])); box.appendChild(el('div', 'v', String(r[1]))); });
+    }).catch(function (e) { toast(e.message, 1); });
+  }
+
+  // ---------- 弹窗 ----------
+  var dlgCb = null;
+  function openDlg(title, kind, value, cb) {
+    $('dlgTitle').textContent = title;
+    $('dlgInput').style.display = kind === 'input' ? '' : 'none';
+    $('dlgText').style.display = kind === 'text' ? '' : 'none';
+    var f = kind === 'input' ? $('dlgInput') : $('dlgText');
+    f.value = value || '';
+    dlgCb = cb;
+    $('dlg').showModal();
+    setTimeout(function () { f.focus(); }, 30);
+  }
+  $('dlgCancel').addEventListener('click', function () { $('dlg').close(); dlgCb = null; });
+  $('dlgOk').addEventListener('click', function () {
+    var f = $('dlgInput').style.display === 'none' ? $('dlgText') : $('dlgInput');
+    var v = f.value;
+    if (!dlgCb) return $('dlg').close();
+    Promise.resolve().then(function () { return dlgCb(v); })
+      .then(function () { $('dlg').close(); dlgCb = null; })
+      .catch(function (e) { toast(e.message, 1); });
+  });
+
+  // ---------- rev 轮询 ----------
+  function tick() {
+    fetch('api/rev').then(function (r) { return r.json(); }).then(function (j) {
+      if (!j || !j.ok) return;
+      if (LASTREV && j.rev !== LASTREV) {
+        var pg = document.querySelector('.acts button[data-pg].on').dataset.pg;
+        if (pg === 'list') loadList(KW);
+        if (pg === 'orbit') {
+          var f = $('orbitFrame');
+          if (f.dataset.loaded === '1') { try { f.contentWindow.location.reload(); } catch (e) { f.dataset.stale = '1'; } }
+          else f.dataset.stale = '1';
+        }
+        if (pg === 'track') loadTrackBody($('q').value.trim());
+        if (pg === 'persona') loadPersonas();
+        if (pg === 'status') loadStatus();
+      }
+      LASTREV = j.rev;
+    }).catch(function () {});
+  }
+
+  // ---------- 自动汲取 / 自动整理 ----------
+  function loadAuto() {
+    fetch('api/auto').then(function (r) { return r.json(); }).then(function (j) {
+      if (!j || !j.ok || !j.auto) return;
+      $('autoIntake').checked = !!j.auto.intake;
+      $('autoTidy').checked = !!j.auto.tidy;
+    }).catch(function () {});
+  }
+  function saveAuto() {
+    api('api/auto', { method: 'POST', body: { intake: $('autoIntake').checked, tidy: $('autoTidy').checked } })
+      .then(function (j) {
+        if (!j || !j.ok) throw new Error((j && j.error) || '保存失败');
+        toast($('autoIntake').checked ? '自动汲取已开：每 2 小时' : '自动汲取已关');
+        if ($('autoTidy').checked) toast('自动整理已开：每 24 小时');
+        loadAuto();
+      })
+      .catch(function (e) { toast(e.message, 1); loadAuto(); });
+  }
+  $('autoIntake').addEventListener('change', saveAuto);
+  $('autoTidy').addEventListener('change', saveAuto);
+  $('btnTidyNow').addEventListener('click', function () {
+    var btn = $('btnTidyNow');
+    btn.disabled = true; btn.textContent = '整理中…';
+    api('api/intake/tidy', { method: 'POST', body: { apply: true } })
+      .then(function (j) {
+        show('intake');
+        renderTidy(j);
+        toast(j.message || ('整理完成：搬走 ' + (j.moved || 0) + ' 条'));
+        loadList(KW);
+      })
+      .catch(function (e) { toast('整理失败：' + e.message, 1); })
+      .then(function () { btn.disabled = false; btn.textContent = '手动整理'; });
+  });
+
+  loadAuto();
+  loadList('');
+  tick();
+  setInterval(tick, 4000);
+})();
+</script>
+</body>
+</html>
